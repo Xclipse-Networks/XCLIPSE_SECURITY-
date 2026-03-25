@@ -2,194 +2,189 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>XCLIPSE // SECURITY_v5.1</title>
-    
-    <link rel="stylesheet" href="assets/vendors/mdi/css/materialdesignicons.min.css">
-    <link rel="stylesheet" href="assets/vendors/css/vendor.bundle.base.css">
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <style id="theme-variables">
         :root {
-            --bg: #010206;
-            --panel: #05070a;
+            --bg: #05070a;
+            --panel: rgba(13, 17, 23, 0.8);
             --accent: #00f2ff;
             --pink: #ec4899;
             --danger: #ff003c;
-            --border: rgba(0, 242, 255, 0.12);
+            --success: #00ff88;
+            --text-dim: #4e555e;
         }
     </style>
 
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;400;900&family=JetBrains+Mono:wght@100;400;800&display=swap');
+
+        * { box-sizing: border-box; transition: all 0.2s ease; }
         body, html {
-            background: var(--bg) !important;
-            color: #b5c2d1;
-            font-family: 'JetBrains Mono', monospace;
+            background-color: var(--bg);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
             margin: 0; padding: 0;
-            height: 100vh; overflow: hidden;
-            font-size: 10px;
+            height: 100vh; width: 100vw;
+            overflow: hidden;
         }
 
-        /* Scanline Overlay */
-        body::after {
-            content: ""; position: absolute; inset: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
-            background-size: 100% 2px; pointer-events: none; z-index: 1000;
-        }
-
+        /* --- AUTH SCREEN --- */
         #login-screen {
             position: fixed; inset: 0; z-index: 10000; background: var(--bg);
             display: flex; align-items: center; justify-content: center;
         }
+        .auth-card { width: 320px; padding: 30px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); border-radius: 15px; }
 
+        /* --- LAYOUT GRID --- */
         .c2-layout {
-            display: none; /* Hidden until authenticated */
-            grid-template-columns: 180px 1fr 260px;
-            grid-template-rows: 40px 1fr 25px;
-            height: 100vh;
+            display: none; height: 100vh; width: 100vw;
+            grid-template-columns: 320px 1fr 320px;
+            padding: 30px; gap: 25px;
         }
-
-        /* Show layout when authenticated class is present */
         body.authenticated .c2-layout { display: grid; }
         body.authenticated #login-screen { display: none; }
 
-        header { grid-column: 1 / -1; background: #000; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; justify-content: space-between; z-index: 10; }
-        
-        .sidebar-left { background: #000; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-        .nav-item { padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.02); color: #4e555e; cursor: pointer; text-transform: uppercase; font-weight: 800; font-size: 9px; }
-        .nav-item.active { background: rgba(0, 242, 255, 0.05); color: var(--accent); border-left: 2px solid var(--accent); }
-
-        .viewport { background: #000; padding: 10px; overflow-y: auto; border-right: 1px solid var(--border); position: relative; }
-        .view-section { display: none; }
-        .view-section.active { display: block; }
-
-        .hud-box { border: 1px solid var(--border); background: rgba(0,0,0,0.8); padding: 10px; position: relative; margin-bottom: 8px; }
-        .hud-label { position: absolute; top: -6px; left: 8px; background: #000; padding: 0 4px; font-size: 7px; color: var(--accent); font-weight: 900; letter-spacing: 1px; }
-
-        /* LIVE MAP */
-        #map-container {
-            width: 100%; height: 180px;
-            background: radial-gradient(circle, #0a1118 0%, #000 100%);
-            border: 1px solid var(--border);
-            position: relative; overflow: hidden;
-            background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
-            background-size: 20px 20px;
+        /* --- HUD MODULES --- */
+        .hud-module {
+            background: var(--panel);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 20px; padding: 20px;
+            position: relative; backdrop-filter: blur(15px);
+            margin-bottom: 15px;
         }
-        .map-ping { position: absolute; width: 4px; height: 4px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent); animation: ping-fade 2s infinite; }
-        @keyframes ping-fade { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(4); opacity: 0; } }
+        .hud-label {
+            position: absolute; top: -10px; left: 20px;
+            background: var(--bg); padding: 2px 10px;
+            font-size: 8px; font-family: 'JetBrains Mono';
+            color: var(--text-dim); letter-spacing: 2px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
 
-        .t-input { width: 100%; background: #080a0c; border: 1px solid #1a1e23; color: var(--accent); font-size: 9px; padding: 7px; outline: none; margin-bottom: 8px; box-sizing: border-box; }
-        .t-btn { width: 100%; padding: 8px; border: none; font-weight: 900; font-size: 8px; cursor: pointer; text-transform: uppercase; transition: 0.2s; }
-        .t-btn:hover { filter: brightness(1.2); }
+        /* --- CENTER ENGINE --- */
+        .temporal-engine {
+            background: var(--panel);
+            border-radius: 60px;
+            border: 1px solid rgba(255,255,255,0.03);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            position: relative;
+        }
+        .clock-face { font-size: 130px; font-weight: 900; letter-spacing: -6px; line-height: 1; display: flex; align-items: baseline; }
+        .ampm { font-size: 30px; color: var(--text-dim); margin-left: 15px; font-style: italic; }
 
-        .theme-btn { width: 32%; font-size: 7px; padding: 5px; border: 1px solid var(--border); background: transparent; color: #fff; cursor: pointer; text-transform: uppercase; font-weight: 800; }
+        /* --- SETTINGS PANEL --- */
+        #settings-overlay {
+            position: absolute; inset: 0; background: var(--bg);
+            z-index: 100; border-radius: 60px; display: none;
+            padding: 50px; overflow-y: auto;
+        }
+        #settings-overlay.active { display: block; }
 
-        .log-line { font-size: 8px; font-family: 'JetBrains Mono'; margin-bottom: 2px; line-height: 1.2; }
-        .traffic-mini-card { border-left: 2px solid var(--accent); padding: 5px; background: rgba(255,255,255,0.01); margin-bottom: 4px; font-size: 8px; }
+        /* --- ELEMENTS --- */
+        #map-container { width: 100%; height: 140px; background: #000; border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden; }
+        .map-ping { position: absolute; width: 4px; height: 4px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent); animation: ping 2s infinite; }
+        @keyframes ping { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(4); opacity: 0; } }
 
-        .hidden { display: none !important; }
-        ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-thumb { background: var(--accent); }
+        .t-input { width: 100%; background: #000; border: 1px solid #1a1e23; color: var(--accent); padding: 10px; margin: 5px 0; font-family: 'JetBrains Mono'; font-size: 10px; outline: none; }
+        .t-btn { width: 100%; padding: 10px; border: none; font-weight: 900; font-size: 9px; cursor: pointer; text-transform: uppercase; margin-top: 5px; }
+        
+        .log-scroll { height: 100px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 8px; }
+        .traffic-card { border-left: 2px solid var(--accent); padding: 5px; background: rgba(255,255,255,0.02); margin-bottom: 8px; font-size: 9px; }
+
+        .theme-swatch { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); }
     </style>
 </head>
-<body onload="loadSavedTheme()">
+<body onload="startTime(); loadSavedTheme();">
 
 <div id="login-screen">
-    <div class="hud-box" style="width: 260px;">
-        <span class="hud-label">FIREBASE_AUTHORIZATION</span>
+    <div class="auth-card">
+        <div style="font-size: 10px; color: var(--pink); letter-spacing: 4px; font-weight: 900; margin-bottom: 5px;">XCLIPSE STUDIO</div>
+        <div style="font-size: 20px; font-weight: 300; margin-bottom: 30px;">C2_LOGIN</div>
         <input type="email" id="fb-email" class="t-input" placeholder="OPERATOR_EMAIL">
         <input type="password" id="fb-pass" class="t-input" placeholder="ACCESS_KEY">
         <button onclick="authenticate()" class="t-btn" style="background: var(--accent); color: #000;">ESTABLISH_UPLINK</button>
-        <div id="auth-err" style="color: var(--danger); font-size: 7px; margin-top: 8px; text-align: center;"></div>
     </div>
 </div>
 
 <div class="c2-layout">
-    <header>
-        <div style="font-weight: 900; letter-spacing: 2px;">XCLIPSE // <span style="color:var(--accent)">SECURITY_v5.1</span></div>
-        <div style="display: flex; gap: 15px; align-items: center;">
-            <div id="ip-display" style="font-size: 8px; color: #444;">NODE: 0.0.0.0</div>
-            <button onclick="signOut()" class="t-btn" style="width: auto; background: transparent; border: 1px solid var(--border); color: var(--accent); font-size: 7px; padding: 2px 8px;">TERMINATE</button>
+    <aside>
+        <div class="hud-module">
+            <span class="hud-label">CORE_NAVIGATION</span>
+            <button onclick="toggleSettings(true)" class="t-btn" style="background: rgba(255,255,255,0.05); color: #fff;">[ OPEN_SETTINGS ]</button>
+            <button onclick="signOut()" class="t-btn" style="background: transparent; border: 1px solid var(--danger); color: var(--danger); margin-top: 10px;">TERMINATE_SESSION</button>
         </div>
-    </header>
 
-    <aside class="sidebar-left">
-        <div class="nav-item active" onclick="switchView('core-dash', this)">[01] CORE_MAP</div>
-        <div class="nav-item" onclick="switchView('shield-logs', this)">[02] EVENT_LOGS</div>
-        <div class="nav-item" onclick="switchView('live-traffic', this)">[03] TRAFFIC_NODES</div>
-        <div class="nav-item" onclick="switchView('system-config', this)" style="margin-top:auto; border-top: 1px solid var(--border); color: #fff;">[04] SYSTEM_CONFIG</div>
+        <div class="hud-module">
+            <span class="hud-label">SHIELD_PROTOCOL</span>
+            <button id="lockdown-btn" onclick="toggleLockdown()" class="t-btn" style="background: var(--danger); color:#fff">INITIALIZE_LOCK</button>
+            <div id="ip-display" style="font-size: 8px; color: var(--text-dim); margin-top: 10px; font-family: 'JetBrains Mono';">NODE: 0.0.0.0</div>
+        </div>
+
+        <div class="hud-module">
+            <span class="hud-label">GEOSPATIAL_MAP</span>
+            <div id="map-container"></div>
+        </div>
     </aside>
 
-    <main class="viewport">
-        <section id="core-dash" class="view-section active">
-            <div id="map-container">
-                <span class="hud-label" style="top: 5px; left: 5px;">LIVE_GEOSPATIAL_GRID</span>
+    <main class="temporal-engine">
+        <div id="settings-overlay">
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h2 style="letter-spacing: 5px; font-weight: 100;">SYSTEM_CONFIGURATION</h2>
+                <button onclick="toggleSettings(false)" class="t-btn" style="width: 80px; background: var(--accent); color:#000;">CLOSE</button>
             </div>
-            <div class="hud-box mt-2" style="height: 250px; overflow: hidden;">
-                <span class="hud-label">CORE_TERMINAL</span>
-                <div id="logs" style="height: 100%; overflow-y: auto;"></div>
-            </div>
-        </section>
-
-        <section id="shield-logs" class="view-section">
-            <div class="hud-box" style="min-height: 480px;">
-                <span class="hud-label">RESTRICTION_AUDIT</span>
-                <div id="ban-list-content"></div>
-            </div>
-        </section>
-
-        <section id="live-traffic" class="view-section">
-            <div class="hud-box" style="min-height: 480px;">
-                <span class="hud-label">ACTIVE_NETWORK_NODES</span>
-                <div id="traffic-stream"></div>
-            </div>
-        </section>
-
-        <section id="system-config" class="view-section">
-            <div class="hud-box">
-                <span class="hud-label">CLIENT_THEME_ENGINE</span>
-                <p style="font-size: 8px; color: #444; margin-bottom: 10px;">Local session overrides only. Persistent in browser cache.</p>
-                <div class="d-flex justify-content-between">
-                    <button onclick="setTheme('stratos')" class="theme-btn" style="border-color: #00f2ff; color: #00f2ff;">STRATOS</button>
-                    <button onclick="setTheme('amber')" class="theme-btn" style="border-color: #ffb400; color: #ffb400;">AMBER</button>
-                    <button onclick="setTheme('phantom')" class="theme-btn" style="border-color: #4ade80; color: #4ade80;">PHANTOM</button>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div class="hud-module">
+                    <span class="hud-label">THEME_ENGINE</span>
+                    <div style="display: flex; gap: 15px; margin-top: 10px;">
+                        <div class="theme-swatch" style="background: #00f2ff;" onclick="setTheme('stratos')"></div>
+                        <div class="theme-swatch" style="background: #ffb400;" onclick="setTheme('amber')"></div>
+                        <div class="theme-swatch" style="background: #ec4899;" onclick="setTheme('neon')"></div>
+                    </div>
+                </div>
+                <div class="hud-module">
+                    <span class="hud-label">CREDENTIAL_SYNC</span>
+                    <input type="email" id="new-email" class="t-input" placeholder="NEW_EMAIL">
+                    <button onclick="updateEmail()" class="t-btn" style="background: var(--accent); color:#000;">UPDATE_MAIL</button>
+                    <input type="password" id="new-pass" class="t-input" placeholder="NEW_PASSWORD" style="margin-top:15px;">
+                    <button onclick="updatePassword()" class="t-btn" style="background: var(--pink); color:#fff;">UPDATE_PASS</button>
                 </div>
             </div>
+        </div>
 
-            <div class="hud-box">
-                <span class="hud-label">SHIELD_PROTOCOL</span>
-                <div class="d-flex justify-content-between align-items:center;">
-                    <span style="font-size: 9px; color: #8b949e;">GLOBAL_OVERRIDE</span>
-                    <button id="lockdown-btn" onclick="toggleLockdown()" class="t-btn" style="width: 100px; background: var(--danger); color: #fff;">INIT_LOCK</button>
-                </div>
-            </div>
+        <div class="clock-face">
+            <span id="hms">00:00:00</span>
+            <span class="ampm" id="ampm">PM</span>
+        </div>
 
-            <div class="hud-box">
-                <span class="hud-label">MAINTENANCE</span>
-                <button onclick="db.ref('network/traffic').remove()" class="t-btn" style="background: transparent; border: 1px solid #333; color: #555; margin-bottom: 5px;">FLUSH_TRAFFIC_DATA</button>
-                <button onclick="document.getElementById('logs').innerHTML=''" class="t-btn" style="background: transparent; border: 1px solid #333; color: #555;">CLEAR_LOCAL_TERMINAL</button>
-            </div>
-        </section>
+        <div class="hud-module" style="position: absolute; bottom: 8%; width: 85%; background: rgba(0,0,0,0.4);">
+            <span class="hud-label">SYSTEM_TERMINAL</span>
+            <div id="logs" class="log-scroll"></div>
+        </div>
     </main>
 
-    <aside class="sidebar-right">
-        <div class="hud-box">
-            <span class="hud-label">SIGNAL_BROADCAST</span>
-            <input type="text" id="marquee-msg" class="t-input" placeholder="MARQUEE_MSG...">
+    <aside>
+        <div class="hud-module">
+            <span class="hud-label">SIGNAL_PUSH</span>
+            <input type="text" id="marquee-msg" class="t-input" placeholder="BROADCAST_MSG">
             <button onclick="updateMarquee()" class="t-btn" style="background: var(--pink); color: #fff;">PUSH_SIGNAL</button>
         </div>
-        <div class="hud-box">
-            <span class="hud-label">IP_RESTRICTION</span>
-            <input type="text" id="target-ip" class="t-input" placeholder="0.0.0.0">
+
+        <div class="hud-module">
+            <span class="hud-label">RESTRICTION</span>
+            <input type="text" id="target-ip" class="t-input" placeholder="IP_ADDRESS">
             <button onclick="banIP()" class="t-btn" style="background: #fff; color: #000;">EXECUTE_BAN</button>
         </div>
-    </aside>
 
-    <footer style="grid-column: 1/-1; background: #000; border-top: 1px solid var(--border); display: flex; align-items: center; padding: 0 10px; font-size: 7px; color: #222;">
-        SECURITY_v5.1 // FIREBASE_ENCRYPTED_UPLINK // MARCH_2026
-    </footer>
+        <div class="hud-module" style="flex-grow: 1;">
+            <span class="hud-label">LIVE_TRAFFIC</span>
+            <div id="traffic-stream" class="log-scroll" style="height: 200px;"></div>
+        </div>
+    </aside>
 </div>
 
 <script>
@@ -208,154 +203,101 @@
     const db = firebase.database();
     const auth = firebase.auth();
 
+    // --- CLOCK ENGINE ---
+    function startTime() {
+        const now = new Date();
+        let h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+        let ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        m = m < 10 ? "0" + m : m; s = s < 10 ? "0" + s : s;
+        document.getElementById('hms').innerText = `${h}:${m}:${s}`;
+        document.getElementById('ampm').innerText = ampm;
+        setTimeout(startTime, 1000);
+    }
+
     // --- THEME ENGINE ---
     const themes = {
-        stratos: { accent: '#00f2ff', border: 'rgba(0, 242, 255, 0.12)', bg: '#010206' },
-        amber: { accent: '#ffb400', border: 'rgba(255, 180, 0, 0.15)', bg: '#080500' },
-        phantom: { accent: '#4ade80', border: 'rgba(74, 222, 128, 0.12)', bg: '#010402' }
+        stratos: { accent: '#00f2ff', bg: '#05070a' },
+        amber: { accent: '#ffb400', bg: '#0a0805' },
+        neon: { accent: '#ec4899', bg: '#0a0508' }
     };
-
     function setTheme(name) {
         const t = themes[name];
-        document.getElementById('theme-variables').innerHTML = `
-            :root {
-                --bg: ${t.bg};
-                --panel: #05070a;
-                --accent: ${t.accent};
-                --pink: #ec4899;
-                --danger: #ff003c;
-                --border: ${t.border};
-            }
-        `;
-        localStorage.setItem('c2_theme_preference', name);
-        addLog(`>> THEME_SYNC: ${name.toUpperCase()}`, 'var(--accent)');
+        document.getElementById('theme-variables').innerHTML = `:root { --bg: ${t.bg}; --panel: rgba(13, 17, 23, 0.8); --accent: ${t.accent}; --pink: #ec4899; --danger: #ff003c; --success: #00ff88; --text-dim: #4e555e; }`;
+        localStorage.setItem('xclipse_theme', name);
     }
-
     function loadSavedTheme() {
-        const saved = localStorage.getItem('c2_theme_preference');
-        if (saved && themes[saved]) setTheme(saved);
+        const saved = localStorage.getItem('xclipse_theme');
+        if(saved) setTheme(saved);
     }
 
-    // --- AUTH LOGIC (NEW) ---
+    // --- AUTH ---
     async function authenticate() {
-        const email = document.getElementById('fb-email').value;
-        const pass = document.getElementById('fb-pass').value;
-        const errDisplay = document.getElementById('auth-err');
-
-        try {
-            errDisplay.innerText = "AUTHENTICATING...";
-            await auth.signInWithEmailAndPassword(email, pass);
-        } catch (error) {
-            errDisplay.innerText = `DENIED: ${error.message.toUpperCase()}`;
-        }
+        const e = document.getElementById('fb-email').value, p = document.getElementById('fb-pass').value;
+        try { await auth.signInWithEmailAndPassword(e, p); } catch(err) { alert(err.message); }
     }
-
-    function signOut() {
-        auth.signOut().then(() => location.reload());
-    }
-
-    // --- AUTH OBSERVER (NEW) ---
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            document.body.classList.add('authenticated');
-            initC2();
-            addLog(`>> UPLINK_ESTABLISHED: ${user.email}`, 'var(--accent)');
-        } else {
-            document.body.classList.remove('authenticated');
-        }
+    auth.onAuthStateChanged(user => {
+        if(user) { document.body.classList.add('authenticated'); initC2(); }
+        else { document.body.classList.remove('authenticated'); }
     });
+    function signOut() { auth.signOut().then(() => location.reload()); }
 
-    function switchView(viewId, el) {
-        document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.getElementById(viewId).classList.add('active');
-        el.classList.add('active');
+    // --- SETTINGS TOGGLE ---
+    function toggleSettings(show) {
+        document.getElementById('settings-overlay').style.display = show ? 'block' : 'none';
     }
 
-    // --- DATA HANDLING ---
+    // --- CORE LOGIC (RESTORED FEATURES) ---
     function initC2() {
-        db.ref('network/security_shield').on('value', (s) => {
+        // Shield
+        db.ref('network/security_shield').on('value', s => {
             const active = s.val() === 'Active';
             const btn = document.getElementById('lockdown-btn');
-            btn.innerText = active ? "SHIELD_ON" : "SHIELD_OFF";
+            btn.innerText = active ? "SHIELD_ACTIVE" : "SHIELD_OFF";
             btn.style.background = active ? "#fff" : "var(--danger)";
             btn.style.color = active ? "var(--danger)" : "#fff";
         });
 
-        db.ref('network/traffic').on('value', (s) => {
+        // Traffic & Map
+        db.ref('network/traffic').on('value', s => {
             const stream = document.getElementById('traffic-stream');
             const map = document.getElementById('map-container');
-            stream.innerHTML = '';
-            map.innerHTML = '<span class="hud-label" style="top:5px; left:5px;">LIVE_GEOSPATIAL_GRID</span>';
+            stream.innerHTML = ''; map.innerHTML = '';
             const data = s.val();
             if(data) {
                 Object.keys(data).forEach(id => {
-                    stream.innerHTML += `<div class="traffic-mini-card">
-                        <div style="color:var(--accent)">${id.replaceAll('-', '.')}</div>
-                        <div style="opacity:0.4">PATH: ${data[id].current_page}</div>
-                        <button onclick="quickBan('${id}')" style="background:none; border:none; color:var(--danger); font-size:7px; padding:0; cursor:pointer;">[ISOLATE]</button>
-                    </div>`;
+                    stream.innerHTML += `<div class="traffic-card"><div style="color:var(--accent)">${id.replaceAll('-', '.')}</div><div style="opacity:0.4">${data[id].current_page}</div></div>`;
                     const ping = document.createElement('div');
-                    ping.className = 'map-ping';
-                    ping.style.left = Math.random() * 90 + '%'; ping.style.top = Math.random() * 80 + '%';
+                    ping.className = 'map-ping'; ping.style.left = Math.random() * 90 + '%'; ping.style.top = Math.random() * 80 + '%';
                     map.appendChild(ping);
                 });
             }
         });
-
-        db.ref('network/blacklist').on('value', (s) => {
-            const content = document.getElementById('ban-list-content');
-            content.innerHTML = '';
-            const data = s.val();
-            if(data) {
-                Object.keys(data).forEach(id => {
-                    content.innerHTML += `<div class="log-line"><span style="color:var(--danger)">[BANNED]</span> ${id.replaceAll('-', '.')} <span onclick="revokeBan('${id}')" style="cursor:pointer; opacity:0.3; margin-left:10px;">[REVOKE]</span></div>`;
-                });
-            }
-        });
     }
 
-    // --- GLOBAL ACTIONS ---
+    // --- SETTINGS ACTIONS ---
+    async function updateEmail() {
+        const mail = document.getElementById('new-email').value;
+        try { await auth.currentUser.updateEmail(mail); alert("Email Updated"); } catch(e) { alert(e.message); }
+    }
+    async function updatePassword() {
+        const pass = document.getElementById('new-pass').value;
+        try { await auth.currentUser.updatePassword(pass); alert("Password Updated"); } catch(e) { alert(e.message); }
+    }
+
+    // --- HUD ACTIONS ---
     function toggleLockdown() {
-        db.ref('network/security_shield').once('value', (s) => {
-            const next = s.val() === 'Active' ? 'Disabled' : 'Active';
-            db.ref('network/security_shield').set(next);
-            addLog(`>> PROTOCOL: SHIELD_${next.toUpperCase()}`, 'var(--pink)');
+        db.ref('network/security_shield').once('value', s => {
+            db.ref('network/security_shield').set(s.val() === 'Active' ? 'Disabled' : 'Active');
         });
     }
-
+    function updateMarquee() {
+        const m = document.getElementById('marquee-msg').value;
+        if(m) db.ref('network/global_marquee').set(m);
+    }
     function banIP() {
         const ip = document.getElementById('target-ip').value;
-        if(!ip.includes('.')) return;
-        db.ref('network/blacklist/' + ip.replaceAll('.', '-')).set({ ts: Date.now() });
-        addLog(`>> RESTRICTED: ${ip}`, 'var(--danger)');
-        document.getElementById('target-ip').value = '';
-    }
-
-    function quickBan(id) {
-        db.ref('network/blacklist/' + id).set({ ts: Date.now() });
-        addLog(`>> QUICK_ISOLATION: ${id.replaceAll('-','.')}`, 'var(--danger)');
-    }
-
-    function revokeBan(id) {
-        db.ref('network/blacklist/' + id).remove();
-        addLog(`>> RESTORED: ${id.replaceAll('-','.')}`, 'var(--accent)');
-    }
-
-    function updateMarquee() {
-        const msg = document.getElementById('marquee-msg').value;
-        if(!msg) return;
-        db.ref('network/global_marquee').set(msg);
-        addLog(`>> BROADCAST: ${msg}`, 'var(--pink)');
-        document.getElementById('marquee-msg').value = '';
-    }
-
-    function addLog(msg, color) {
-        const logs = document.getElementById('logs');
-        const d = document.createElement('div');
-        d.className = 'log-line';
-        d.innerHTML = `<span style="opacity:0.2;">[${new Date().toLocaleTimeString()}]</span> <span style="color:${color}">${msg}</span>`;
-        logs.prepend(d);
+        if(ip.includes('.')) db.ref('network/blacklist/' + ip.replaceAll('.', '-')).set({ ts: Date.now() });
     }
 
     fetch('https://api.ipify.org?format=json').then(r => r.json()).then(d => document.getElementById('ip-display').innerText = `NODE: ${d.ip}`);
