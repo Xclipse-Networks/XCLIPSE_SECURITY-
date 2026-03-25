@@ -2,305 +2,404 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>XCLIPSE // SECURITY_v5.1</title>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-
-    <style id="theme-variables">
-        :root {
-            --bg: #05070a;
-            --panel: rgba(13, 17, 23, 0.8);
-            --accent: #00f2ff;
-            --pink: #ec4899;
-            --danger: #ff003c;
-            --success: #00ff88;
-            --text-dim: #4e555e;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>XCLIPSE // BLACKGATE_v10.3</title>
 
     <style>
+        /* --- [CSS_VFX_ENGINE_START] --- */
+        :root {
+            --bg-ultra: #010203;
+            --panel-hex: rgba(7, 9, 15, 0.96);
+            --accent-neon: #00f2ff;
+            --accent-glow: rgba(0, 242, 255, 0.4);
+            --pink-neon: #ff007a;
+            --danger-neon: #ff1100;
+            --success-neon: #00ff88;
+            --text-primary: #ffffff;
+            --text-secondary: #4a5a6a;
+            --border-thin: rgba(0, 242, 255, 0.12);
+            --font-main: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --glitch-gap: 5px;
+        }
+
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;400;900&family=JetBrains+Mono:wght@100;400;800&display=swap');
 
-        * { box-sizing: border-box; transition: all 0.2s ease; }
+        * { box-sizing: border-box; margin: 0; padding: 0; cursor: crosshair; outline: none; }
+
         body, html {
-            background-color: var(--bg);
-            color: #ffffff;
-            font-family: 'Inter', sans-serif;
-            margin: 0; padding: 0;
+            background-color: var(--bg-ultra);
+            color: var(--text-primary);
+            font-family: var(--font-main);
             height: 100vh; width: 100vw;
             overflow: hidden;
+            user-select: none;
         }
 
-        /* --- AUTH SCREEN --- */
-        #login-screen {
-            position: fixed; inset: 0; z-index: 10000; background: var(--bg);
+        /* CRT_SCANLINE_EMULATION */
+        body::after {
+            content: " ";
+            display: block; position: absolute; inset: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 9999; background-size: 100% 3px, 3px 100%;
+            pointer-events: none; opacity: 0.5;
+        }
+
+        /* SCROLL_BEHAVIOR */
+        ::-webkit-scrollbar { width: 2px; height: 2px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--accent-neon); box-shadow: 0 0 10px var(--accent-neon); }
+
+        /* KEYFRAME_ORCHESTRATION */
+        @keyframes scan { from { left: -100%; } to { left: 100%; } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes reveal-core { from { opacity: 0; filter: blur(10px); } to { opacity: 1; filter: blur(0); } }
+        
+        /* AUTH_INTERFACE */
+        #auth-gate {
+            position: fixed; inset: 0; z-index: 10000;
+            background: radial-gradient(circle at center, #05070a 0%, #000 100%);
             display: flex; align-items: center; justify-content: center;
         }
-        .auth-card { width: 320px; padding: 30px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); border-radius: 15px; }
-
-        /* --- LAYOUT GRID --- */
-        .c2-layout {
-            display: none; height: 100vh; width: 100vw;
-            grid-template-columns: 320px 1fr 320px;
-            padding: 30px; gap: 25px;
+        .gate-card {
+            width: 440px; padding: 60px; background: var(--panel-hex);
+            border: 1px solid var(--border-thin); text-align: center;
+            position: relative; overflow: hidden;
         }
-        body.authenticated .c2-layout { display: grid; }
-        body.authenticated #login-screen { display: none; }
-
-        /* --- HUD MODULES --- */
-        .hud-module {
-            background: var(--panel);
-            border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 20px; padding: 20px;
-            position: relative; backdrop-filter: blur(15px);
-            margin-bottom: 15px;
-        }
-        .hud-label {
-            position: absolute; top: -10px; left: 20px;
-            background: var(--bg); padding: 2px 10px;
-            font-size: 8px; font-family: 'JetBrains Mono';
-            color: var(--text-dim); letter-spacing: 2px;
-            border: 1px solid rgba(255,255,255,0.1);
+        .gate-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-neon), transparent);
+            animation: scan 2s infinite linear;
         }
 
-        /* --- CENTER ENGINE --- */
-        .temporal-engine {
-            background: var(--panel);
-            border-radius: 60px;
-            border: 1px solid rgba(255,255,255,0.03);
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            position: relative;
+        /* GRID_SYSTEM */
+        .mainframe-container {
+            display: none; height: 100vh; padding: 30px;
+            grid-template-columns: 350px 1fr 350px; gap: 25px;
         }
-        .clock-face { font-size: 130px; font-weight: 900; letter-spacing: -6px; line-height: 1; display: flex; align-items: baseline; }
-        .ampm { font-size: 30px; color: var(--text-dim); margin-left: 15px; font-style: italic; }
+        body.authenticated .mainframe-container { display: grid; animation: reveal-core 1s ease; }
 
-        /* --- SETTINGS PANEL --- */
-        #settings-overlay {
-            position: absolute; inset: 0; background: var(--bg);
-            z-index: 100; border-radius: 60px; display: none;
-            padding: 50px; overflow-y: auto;
+        /* HUD_PANEL_DESIGN */
+        .hud-panel {
+            background: var(--panel-hex); border: 1px solid var(--border-thin);
+            backdrop-filter: blur(30px); display: flex; flex-direction: column; 
+            overflow: hidden; position: relative; transition: 0.3s;
         }
-        #settings-overlay.active { display: block; }
+        .hud-panel:hover { border-color: var(--accent-neon); box-shadow: inset 0 0 20px rgba(0, 242, 255, 0.05); }
 
-        /* --- ELEMENTS --- */
-        #map-container { width: 100%; height: 140px; background: #000; border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden; }
-        .map-ping { position: absolute; width: 4px; height: 4px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent); animation: ping 2s infinite; }
-        @keyframes ping { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(4); opacity: 0; } }
+        .panel-header {
+            padding: 14px 18px; border-bottom: 1px solid var(--border-thin);
+            font-family: var(--font-code); font-size: 10px; letter-spacing: 4px;
+            color: var(--text-secondary); display: flex; justify-content: space-between;
+            background: rgba(255,255,255,0.01);
+        }
+        .panel-header b { color: var(--accent-neon); text-shadow: 0 0 10px var(--accent-glow); }
 
-        .t-input { width: 100%; background: #000; border: 1px solid #1a1e23; color: var(--accent); padding: 10px; margin: 5px 0; font-family: 'JetBrains Mono'; font-size: 10px; outline: none; }
-        .t-btn { width: 100%; padding: 10px; border: none; font-weight: 900; font-size: 9px; cursor: pointer; text-transform: uppercase; margin-top: 5px; }
-        
-        .log-scroll { height: 100px; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 8px; }
-        .traffic-card { border-left: 2px solid var(--accent); padding: 5px; background: rgba(255,255,255,0.02); margin-bottom: 8px; font-size: 9px; }
+        /* INPUT_ARCHITECTURE */
+        .input-node {
+            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--border-thin);
+            color: var(--accent-neon); padding: 15px; margin-bottom: 12px;
+            font-family: var(--font-code); font-size: 11px; transition: 0.2s;
+        }
+        .input-node:focus { border-color: var(--accent-neon); background: #000; }
 
-        .theme-swatch { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-core {
+            width: 100%; padding: 14px; background: var(--accent-neon); color: #000;
+            border: none; font-family: var(--font-code); font-weight: 800; font-size: 10px;
+            text-transform: uppercase; cursor: pointer; transition: 0.3s; letter-spacing: 2px;
+        }
+        .btn-core:hover { transform: scale(1.02); filter: brightness(1.2); }
+        .btn-ghost { background: transparent; border: 1px solid var(--border-thin); color: var(--text-secondary); }
+        .btn-danger { background: var(--danger-neon); color: #fff; margin-top: 15px; }
+        .pink-btn { background: var(--pink-neon); color: #fff; }
+
+        /* CLOCK_HUD */
+        .clock-section { text-align: center; margin-bottom: 40px; }
+        .time-readout { font-size: 130px; font-weight: 100; letter-spacing: -12px; color: #fff; line-height: 0.9; }
+        .date-readout { font-family: var(--font-code); color: var(--text-secondary); letter-spacing: 12px; margin-top: 15px; font-size: 12px; }
+
+        /* DATA_STREAMS */
+        .feed-container { flex-grow: 1; overflow-y: auto; padding: 20px; }
+        .feed-item { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-family: var(--font-code); font-size: 10px; animation: reveal-core 0.4s ease; }
+        .feed-item b { color: var(--accent-neon); }
+
+        /* VAULT_OVERLAY */
+        #vault-overlay {
+            position: absolute; inset: 0; z-index: 5000; background: rgba(1,2,3,0.99);
+            display: none; padding: 80px; grid-template-columns: 1fr 1fr; gap: 60px;
+        }
+        #vault-overlay.active { display: grid; }
+
+        /* DECORATIVE_ELEMENTS */
+        .corner-tag { position: absolute; font-size: 8px; font-family: var(--font-code); color: var(--text-secondary); }
+        .top-l { top: 10px; left: 10px; }
+        .bot-r { bottom: 10px; right: 10px; }
+
+        .os-toggle-wrap { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        .switch-ui { width: 44px; height: 20px; background: #111; border-radius: 20px; cursor: pointer; position: relative; transition: 0.3s; }
+        .switch-ui.on { background: var(--success-neon); box-shadow: 0 0 10px var(--success-neon); }
+        .switch-ui::after { content: ''; position: absolute; width: 14px; height: 14px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: 0.3s; }
+        .switch-ui.on::after { left: 27px; }
+
+        #latency-vfx {
+            position: fixed; inset: 0; z-index: 20000; background: #000;
+            display: none; align-items: center; justify-content: center; flex-direction: column;
+        }
+        .scanner-line { width: 300px; height: 1px; background: var(--accent-neon); box-shadow: 0 0 20px var(--accent-neon); position: relative; overflow: hidden; }
+        .scanner-line::after { content: ''; position: absolute; width: 100%; height: 100%; background: #fff; animation: scan 1.5s infinite linear; }
+        /* --- [CSS_VFX_ENGINE_END] --- */
     </style>
 </head>
-<body onload="startTime(); loadSavedTheme();">
+<body>
 
-<div id="login-screen">
-    <div class="auth-card">
-        <div style="font-size: 10px; color: var(--pink); letter-spacing: 4px; font-weight: 900; margin-bottom: 5px;">XCLIPSE STUDIO</div>
-        <div style="font-size: 20px; font-weight: 300; margin-bottom: 30px;">C2_LOGIN</div>
-        <input type="email" id="fb-email" class="t-input" placeholder="OPERATOR_EMAIL">
-        <input type="password" id="fb-pass" class="t-input" placeholder="ACCESS_KEY">
-        <button onclick="authenticate()" class="t-btn" style="background: var(--accent); color: #000;">ESTABLISH_UPLINK</button>
+    <div style="position: absolute; inset: 0; pointer-events: none; z-index: 5; opacity: 0.2;">
+        <svg width="100%" height="100%">
+            <defs>
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="0.5"/>
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+            <circle cx="50%" cy="50%" r="300" fill="none" stroke="var(--accent-neon)" stroke-width="1" stroke-dasharray="10 20" />
+            <path d="M 50 10 L 10 10 L 10 50" fill="none" stroke="var(--accent-neon)" stroke-width="2" />
+            <path d="M 50 90 L 10 90 L 10 50" fill="none" stroke="var(--accent-neon)" stroke-width="2" />
+        </svg>
     </div>
-</div>
+    <div id="latency-vfx">
+        <div class="scanner-line"></div>
+        <div style="font-family: var(--font-code); font-size: 10px; color: var(--accent-neon); margin-top: 30px; letter-spacing: 15px; animation: blink 1s infinite;">ENCRYPTING_CORE</div>
+    </div>
 
-<div class="c2-layout">
-    <aside>
-        <div class="hud-module">
-            <span class="hud-label">CORE_NAVIGATION</span>
-            <button onclick="toggleSettings(true)" class="t-btn" style="background: rgba(255,255,255,0.05); color: #fff;">[ OPEN_SETTINGS ]</button>
-            <button onclick="signOut()" class="t-btn" style="background: transparent; border: 1px solid var(--danger); color: var(--danger); margin-top: 10px;">TERMINATE_SESSION</button>
+    <section id="auth-gate">
+        <div class="gate-card">
+            <div class="corner-tag top-l">BLACKGATE_v10.3</div>
+            <h1>BLACKGATE_OS</h1>
+            <p class="gate-subtitle">SECURE_XCLIPSE_TERMINAL_v10.3</p>
+            <input type="email" id="login-email" class="input-node" placeholder="NODE_ACCESS_ID">
+            <input type="password" id="login-pass" class="input-node" placeholder="SECURITY_TOKEN">
+            <button id="auth-trigger" class="btn-core">INITIATE_HANDSHAKE</button>
+            <p id="auth-log" style="font-family: var(--font-code); font-size: 8px; color: var(--danger-neon); margin-top: 25px;"></p>
+            <div class="corner-tag bot-r">AUTH_REQUIRED</div>
         </div>
+    </section>
 
-        <div class="hud-module">
-            <span class="hud-label">SHIELD_PROTOCOL</span>
-            <button id="lockdown-btn" onclick="toggleLockdown()" class="t-btn" style="background: var(--danger); color:#fff">INITIALIZE_LOCK</button>
-            <div id="ip-display" style="font-size: 8px; color: var(--text-dim); margin-top: 10px; font-family: 'JetBrains Mono';">NODE: 0.0.0.0</div>
-        </div>
-
-        <div class="hud-module">
-            <span class="hud-label">GEOSPATIAL_MAP</span>
-            <div id="map-container"></div>
-        </div>
-    </aside>
-
-    <main class="temporal-engine">
-        <div id="settings-overlay">
-            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-                <h2 style="letter-spacing: 5px; font-weight: 100;">SYSTEM_CONFIGURATION</h2>
-                <button onclick="toggleSettings(false)" class="t-btn" style="width: 80px; background: var(--accent); color:#000;">CLOSE</button>
+    <div class="mainframe-container">
+        <aside style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="hud-panel">
+                <div class="panel-header"><b>SYS</b>_OPERATIONS</div>
+                <div style="padding: 25px;">
+                    <button onclick="BLACKGATE.vaultUI(true)" class="btn-core btn-ghost">OPEN_VAULT</button>
+                    <button onclick="BLACKGATE.exit()" class="btn-core btn-danger">TERMINATE_OS</button>
+                </div>
             </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-                <div class="hud-module">
-                    <span class="hud-label">THEME_ENGINE</span>
-                    <div style="display: flex; gap: 15px; margin-top: 10px;">
-                        <div class="theme-swatch" style="background: #00f2ff;" onclick="setTheme('stratos')"></div>
-                        <div class="theme-swatch" style="background: #ffb400;" onclick="setTheme('amber')"></div>
-                        <div class="theme-swatch" style="background: #ec4899;" onclick="setTheme('neon')"></div>
+            <div id="mod-shield" class="hud-panel">
+                <div class="panel-header"><b>SEC</b>_FIREWALL</div>
+                <div style="padding: 25px;">
+                    <button id="shield-toggle" class="btn-core">UPLINKING...</button>
+                    <div id="node-ip" style="font-family: var(--font-code); font-size: 9px; color: var(--text-secondary); margin-top: 20px; text-align: center; letter-spacing: 2px;">IP: --.--.--.--</div>
+                </div>
+            </div>
+            <div id="mod-map" class="hud-panel" style="flex-grow: 1;">
+                <div class="panel-header"><b>GEO</b>_LOCATION</div>
+                <div id="map-render" style="height: 100%; background: #000; position: relative; overflow: hidden;"></div>
+            </div>
+        </aside>
+
+        <main class="hud-panel" style="background: transparent; border: none; justify-content: center; align-items: center;">
+            <div id="vault-overlay">
+                <div>
+                    <h2 style="font-size: 32px; letter-spacing: 15px; margin-bottom: 50px; font-weight: 900;">OS_VAULT</h2>
+                    <div class="hud-panel" style="padding: 30px; border: none; background: rgba(255,255,255,0.02);">
+                        <div class="os-toggle-wrap">
+                            <span style="font-family: var(--font-code); font-size: 11px;">MAP_SAT_INTEL</span>
+                            <div id="tog-map" class="switch-ui on" onclick="BLACKGATE.toggle('mod-map', 'tog-map')"></div>
+                        </div>
+                        <div class="os-toggle-wrap">
+                            <span style="font-family: var(--font-code); font-size: 11px;">FIREWALL_SYNC</span>
+                            <div id="tog-shield" class="switch-ui on" onclick="BLACKGATE.toggle('mod-shield', 'tog-shield')"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="hud-module">
-                    <span class="hud-label">CREDENTIAL_SYNC</span>
-                    <input type="email" id="new-email" class="t-input" placeholder="NEW_EMAIL">
-                    <button onclick="updateEmail()" class="t-btn" style="background: var(--accent); color:#000;">UPDATE_MAIL</button>
-                    <input type="password" id="new-pass" class="t-input" placeholder="NEW_PASSWORD" style="margin-top:15px;">
-                    <button onclick="updatePassword()" class="t-btn" style="background: var(--pink); color:#fff;">UPDATE_PASS</button>
+                <div style="display: flex; flex-direction: column; justify-content: flex-end;">
+                    <div class="hud-panel" style="padding: 30px; background: rgba(255,255,255,0.02); border: none;">
+                        <input type="email" id="sync-email" class="input-node" placeholder="UPDATE_NODE_ID">
+                        <button id="email-sync-btn" class="btn-core btn-ghost">SYNC_IDENTITY</button>
+                        <div style="margin-top: 30px;"></div>
+                        <input type="password" id="sync-pass" class="input-node" placeholder="UPDATE_PASSKEY">
+                        <button id="pass-sync-btn" class="btn-core pink-btn">SYNC_PASSKEY</button>
+                    </div>
+                    <button onclick="BLACKGATE.vaultUI(false)" class="btn-core btn-ghost" style="margin-top: 40px;">[ CLOSE_VAULT ]</button>
                 </div>
             </div>
-        </div>
 
-        <div class="clock-face">
-            <span id="hms">00:00:00</span>
-            <span class="ampm" id="ampm">PM</span>
-        </div>
+            <div class="clock-section">
+                <div class="time-readout" id="os-time">00:00:00</div>
+                <div class="date-readout" id="os-date">MARCH // 25 // 2026</div>
+            </div>
 
-        <div class="hud-module" style="position: absolute; bottom: 8%; width: 85%; background: rgba(0,0,0,0.4);">
-            <span class="hud-label">SYSTEM_TERMINAL</span>
-            <div id="logs" class="log-scroll"></div>
-        </div>
-    </main>
+            <div id="mod-logs" class="hud-panel" style="position: absolute; bottom: 0; width: 95%; height: 260px; background: rgba(0,0,0,0.95);">
+                <div class="panel-header"><b>KERNEL</b>_FEED <span onclick="BLACKGATE.scrollToTop('log-viewport')" style="cursor: pointer; color: var(--accent-neon);">[SCROLL_TOP]</span></div>
+                <div id="log-viewport" class="feed-container"></div>
+            </div>
+        </main>
 
-    <aside>
-        <div class="hud-module">
-            <span class="hud-label">SIGNAL_PUSH</span>
-            <input type="text" id="marquee-msg" class="t-input" placeholder="BROADCAST_MSG">
-            <button onclick="updateMarquee()" class="t-btn" style="background: var(--pink); color: #fff;">PUSH_SIGNAL</button>
-        </div>
+        <aside style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="hud-panel">
+                <div class="panel-header"><b>SIG</b>_BROADCAST</div>
+                <div style="padding: 25px;">
+                    <input type="text" id="sig-msg" class="input-node" placeholder="BROADCAST_STRING...">
+                    <button id="sig-trigger" class="btn-core pink-btn">EXECUTE_PUSH</button>
+                </div>
+            </div>
+            <div id="mod-traffic" class="hud-panel" style="flex-grow: 1;">
+                <div class="panel-header"><b>NET</b>_TRAFFIC <span onclick="BLACKGATE.scrollToTop('traffic-viewport')" style="cursor: pointer; color: var(--accent-neon);">[SCROLL_TOP]</span></div>
+                <div id="traffic-viewport" class="feed-container"></div>
+            </div>
+        </aside>
+    </div>
 
-        <div class="hud-module">
-            <span class="hud-label">RESTRICTION</span>
-            <input type="text" id="target-ip" class="t-input" placeholder="IP_ADDRESS">
-            <button onclick="banIP()" class="t-btn" style="background: #fff; color: #000;">EXECUTE_BAN</button>
-        </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        // FIXED URL BELOW (Removed .app from filename)
+        import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-        <div class="hud-module" style="flex-grow: 1;">
-            <span class="hud-label">LIVE_TRAFFIC</span>
-            <div id="traffic-stream" class="log-scroll" style="height: 200px;"></div>
-        </div>
-    </aside>
-</div>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdv6yESBrKhlEvU2URCXoVRVO-2OjAEv4",
+            authDomain: "xclipse-security.firebaseapp.com",
+            databaseURL: "https://xclipse-security-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "xclipse-security",
+            storageBucket: "xclipse-security.firebasestorage.app",
+            messagingSenderId: "161353959200",
+            appId: "1:161353959200:web:d0b36f7817b31842cff945"
+        };
 
-<script>
-    // --- FIREBASE CONFIG ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyCdv6yESBrKhlEvU2URCXoVRVO-2OjAEv4",
-        authDomain: "xclipse-security.firebaseapp.com",
-        databaseURL: "https://xclipse-security-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "xclipse-security",
-        storageBucket: "xclipse-security.firebasestorage.app",
-        messagingSenderId: "161353959200",
-        appId: "1:161353959200:web:d0b36f7817b31842cff945"
-    };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const auth = firebase.auth();
+        const BLACKGATE = (() => {
+            const boot = () => {
+                _log("KERNEL: INITIATING_BOOT_PROTOCOL", "var(--accent-neon)");
+                _initClock();
+                _initAuth();
+                _loadPrefs();
+            };
 
-    // --- CLOCK ENGINE ---
-    function startTime() {
-        const now = new Date();
-        let h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
-        let ampm = h >= 12 ? 'PM' : 'AM';
-        h = h % 12 || 12;
-        m = m < 10 ? "0" + m : m; s = s < 10 ? "0" + s : s;
-        document.getElementById('hms').innerText = `${h}:${m}:${s}`;
-        document.getElementById('ampm').innerText = ampm;
-        setTimeout(startTime, 1000);
-    }
+            const _initClock = () => {
+                setInterval(() => {
+                    document.getElementById('os-time').innerText = new Date().toLocaleTimeString('en-GB', { hour12: false });
+                }, 1000);
+            };
 
-    // --- THEME ENGINE ---
-    const themes = {
-        stratos: { accent: '#00f2ff', bg: '#05070a' },
-        amber: { accent: '#ffb400', bg: '#0a0805' },
-        neon: { accent: '#ec4899', bg: '#0a0508' }
-    };
-    function setTheme(name) {
-        const t = themes[name];
-        document.getElementById('theme-variables').innerHTML = `:root { --bg: ${t.bg}; --panel: rgba(13, 17, 23, 0.8); --accent: ${t.accent}; --pink: #ec4899; --danger: #ff003c; --success: #00ff88; --text-dim: #4e555e; }`;
-        localStorage.setItem('xclipse_theme', name);
-    }
-    function loadSavedTheme() {
-        const saved = localStorage.getItem('xclipse_theme');
-        if(saved) setTheme(saved);
-    }
-
-    // --- AUTH ---
-    async function authenticate() {
-        const e = document.getElementById('fb-email').value, p = document.getElementById('fb-pass').value;
-        try { await auth.signInWithEmailAndPassword(e, p); } catch(err) { alert(err.message); }
-    }
-    auth.onAuthStateChanged(user => {
-        if(user) { document.body.classList.add('authenticated'); initC2(); }
-        else { document.body.classList.remove('authenticated'); }
-    });
-    function signOut() { auth.signOut().then(() => location.reload()); }
-
-    // --- SETTINGS TOGGLE ---
-    function toggleSettings(show) {
-        document.getElementById('settings-overlay').style.display = show ? 'block' : 'none';
-    }
-
-    // --- CORE LOGIC (RESTORED FEATURES) ---
-    function initC2() {
-        // Shield
-        db.ref('network/security_shield').on('value', s => {
-            const active = s.val() === 'Active';
-            const btn = document.getElementById('lockdown-btn');
-            btn.innerText = active ? "SHIELD_ACTIVE" : "SHIELD_OFF";
-            btn.style.background = active ? "#fff" : "var(--danger)";
-            btn.style.color = active ? "var(--danger)" : "#fff";
-        });
-
-        // Traffic & Map
-        db.ref('network/traffic').on('value', s => {
-            const stream = document.getElementById('traffic-stream');
-            const map = document.getElementById('map-container');
-            stream.innerHTML = ''; map.innerHTML = '';
-            const data = s.val();
-            if(data) {
-                Object.keys(data).forEach(id => {
-                    stream.innerHTML += `<div class="traffic-card"><div style="color:var(--accent)">${id.replaceAll('-', '.')}</div><div style="opacity:0.4">${data[id].current_page}</div></div>`;
-                    const ping = document.createElement('div');
-                    ping.className = 'map-ping'; ping.style.left = Math.random() * 90 + '%'; ping.style.top = Math.random() * 80 + '%';
-                    map.appendChild(ping);
+            const _initAuth = () => {
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        document.body.classList.add('authenticated');
+                        _sync();
+                        _log("STATUS: UPLINK_ESTABLISHED // NODE_" + user.uid.substring(0,6), "var(--success-neon)");
+                    } else {
+                        document.body.classList.remove('authenticated');
+                    }
                 });
-            }
-        });
-    }
 
-    // --- SETTINGS ACTIONS ---
-    async function updateEmail() {
-        const mail = document.getElementById('new-email').value;
-        try { await auth.currentUser.updateEmail(mail); alert("Email Updated"); } catch(e) { alert(e.message); }
-    }
-    async function updatePassword() {
-        const pass = document.getElementById('new-pass').value;
-        try { await auth.currentUser.updatePassword(pass); alert("Password Updated"); } catch(e) { alert(e.message); }
-    }
+                document.getElementById('auth-trigger').onclick = async () => {
+                    const e = document.getElementById('login-email').value;
+                    const p = document.getElementById('login-pass').value;
+                    const logger = document.getElementById('auth-log');
+                    logger.innerText = "AUTHENTICATING...";
+                    try {
+                        await signInWithEmailAndPassword(auth, e, p);
+                    } catch (err) {
+                        logger.innerText = "DENIED: " + err.code.replace('auth/', '');
+                    }
+                };
+            };
 
-    // --- HUD ACTIONS ---
-    function toggleLockdown() {
-        db.ref('network/security_shield').once('value', s => {
-            db.ref('network/security_shield').set(s.val() === 'Active' ? 'Disabled' : 'Active');
-        });
-    }
-    function updateMarquee() {
-        const m = document.getElementById('marquee-msg').value;
-        if(m) db.ref('network/global_marquee').set(m);
-    }
-    function banIP() {
-        const ip = document.getElementById('target-ip').value;
-        if(ip.includes('.')) db.ref('network/blacklist/' + ip.replaceAll('.', '-')).set({ ts: Date.now() });
-    }
+            const _sync = () => {
+                onValue(ref(db, 'network/security_shield'), (s) => {
+                    const active = s.val() === 'Active';
+                    const btn = document.getElementById('shield-toggle');
+                    btn.innerText = active ? "SHIELD_STABLE" : "SHIELD_BYPASS";
+                    btn.style.background = active ? "var(--accent-neon)" : "var(--danger-neon)";
+                    btn.style.color = active ? "#000" : "#fff";
+                    _log("SHIELD_UPDATE: " + s.val());
+                });
 
-    fetch('https://api.ipify.org?format=json').then(r => r.json()).then(d => document.getElementById('ip-display').innerText = `NODE: ${d.ip}`);
-</script>
-</body>
+                onValue(ref(db, 'network/traffic'), (s) => {
+                    const v = document.getElementById('traffic-viewport');
+                    const m = document.getElementById('map-render');
+                    v.innerHTML = ''; m.innerHTML = '';
+                    const d = s.val();
+                    if(d) Object.keys(d).forEach(id => {
+                        const item = document.createElement('div');
+                        item.className = 'feed-item';
+                        item.innerHTML = `<b>${id.replaceAll('-','.')}</b><br>${d[id].current_page}`;
+                        v.prepend(item);
+                        const dot = document.createElement('div');
+                        dot.style = `position:absolute; width:4px; height:4px; background:var(--accent-neon); left:${Math.random()*90}%; top:${Math.random()*90}%; box-shadow:0 0 10px var(--accent-neon); border-radius:50%;`;
+                        m.appendChild(dot);
+                    });
+                });
+
+                document.getElementById('sig-trigger').onclick = () => {
+                    const val = document.getElementById('sig-msg').value;
+                    if(val) set(ref(db, 'network/global_marquee'), val);
+                };
+
+                document.getElementById('shield-toggle').onclick = async () => {
+                    const r = ref(db, 'network/security_shield');
+                    const s = await get(r);
+                    set(r, s.val() === 'Active' ? 'Disabled' : 'Active');
+                };
+
+                fetch('https://api.ipify.org?format=json').then(r => r.json()).then(d => document.getElementById('node-ip').innerText = "NODE_IP: " + d.ip);
+            };
+
+            const _log = (m, c) => {
+                const v = document.getElementById('log-viewport');
+                if(!v) return;
+                const e = document.createElement('div');
+                e.className = 'feed-item';
+                e.style.color = c || 'var(--text-secondary)';
+                e.innerHTML = `> [${new Date().toLocaleTimeString()}] ${m}`;
+                v.prepend(e);
+            };
+
+            const _loadPrefs = () => {
+                ['mod-map', 'mod-shield', 'mod-traffic'].forEach(id => {
+                    if(localStorage.getItem('x_pref_'+id) === 'true') {
+                        document.getElementById(id).classList.add('hidden-node');
+                        const short = id.split('-')[1];
+                        if(document.getElementById('tog-'+short)) document.getElementById('tog-'+short).classList.remove('on');
+                    }
+                });
+            };
+
+            return {
+                boot,
+                vaultUI: (s) => {
+                    document.getElementById('latency-vfx').style.display = 'flex';
+                    setTimeout(() => {
+                        document.getElementById('latency-vfx').style.display = 'none';
+                        document.getElementById('vault-overlay').classList.toggle('active', s);
+                    }, 800);
+                },
+                toggle: (n, t) => {
+                    const isH = document.getElementById(n).classList.toggle('hidden-node');
+                    document.getElementById(t).classList.toggle('on', !isH);
+                    localStorage.setItem('x_pref_'+n, isH);
+                },
+                scrollToTop: (id) => document.getElementById(id).scrollTop = 0,
+                exit: () => signOut(auth).then(() => location.reload())
+            };
+        })();
+
+        // GLOBAL EXPOSURE AFTER DEFINITION
+        window.BLACKGATE = BLACKGATE;
+        BLACKGATE.boot(); 
+    </script>
+    </body>
 </html>
