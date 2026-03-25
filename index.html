@@ -3,111 +3,198 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>XCLIPSE_OS // TERMINAL_v5.1</title>
+    <title>XCLIPSE // SECURITY_v5.1</title>
     
+    <link rel="stylesheet" href="assets/vendors/mdi/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="assets/vendors/css/vendor.bundle.base.css">
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
-    <style id="dynamic-bios">
+    <style id="theme-variables">
         :root {
-            --bg: #020408;
+            --bg: #010206;
+            --panel: #05070a;
             --accent: #00f2ff;
-            --accent-dim: rgba(0, 242, 255, 0.1);
-            --border: rgba(0, 242, 255, 0.2);
+            --pink: #ec4899;
             --danger: #ff003c;
-            --warning: #ffb400;
-            --surface: #0a0c10;
-            --font-main: 'JetBrains Mono', 'Fira Code', monospace;
+            --border: rgba(0, 242, 255, 0.12);
         }
     </style>
 
     <style>
-        /* --- CORE STYLES (TRUNCATED FOR BREVITY, RETAINED FROM PREVIOUS) --- */
-        * { box-sizing: border-box; cursor: crosshair !important; }
-        body, html { background: var(--bg); color: #7a8a99; font-family: var(--font-main); margin: 0; height: 100vh; overflow: hidden; font-size: 11px; }
+        body, html {
+            background: var(--bg) !important;
+            color: #b5c2d1;
+            font-family: 'JetBrains Mono', monospace;
+            margin: 0; padding: 0;
+            height: 100vh; overflow: hidden;
+            font-size: 10px;
+        }
+
+        /* Scanline Overlay */
+        body::after {
+            content: ""; position: absolute; inset: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+            background-size: 100% 2px; pointer-events: none; z-index: 1000;
+        }
+
+        #login-screen {
+            position: fixed; inset: 0; z-index: 10000; background: var(--bg);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .c2-layout {
+            display: none; /* Hidden until authenticated */
+            grid-template-columns: 180px 1fr 260px;
+            grid-template-rows: 40px 1fr 25px;
+            height: 100vh;
+        }
+
+        /* Show layout when authenticated class is present */
+        body.authenticated .c2-layout { display: grid; }
+        body.authenticated #login-screen { display: none; }
+
+        header { grid-column: 1 / -1; background: #000; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; justify-content: space-between; z-index: 10; }
         
-        #auth-gate { position: fixed; inset: 0; z-index: 10000; background: #000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-        .auth-container { width: 360px; padding: 30px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 0 40px rgba(0,0,0,1); }
-        
-        .t-input { width: 100%; background: #000; border: 1px solid var(--border); color: var(--accent); padding: 10px; margin-bottom: 12px; outline: none; font-family: var(--font-main); }
-        .t-btn { width: 100%; padding: 10px; border: 1px solid var(--accent); background: var(--accent-dim); color: var(--accent); font-weight: 900; cursor: pointer; }
-        .t-btn:hover { background: var(--accent); color: #000; }
+        .sidebar-left { background: #000; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .nav-item { padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.02); color: #4e555e; cursor: pointer; text-transform: uppercase; font-weight: 800; font-size: 9px; }
+        .nav-item.active { background: rgba(0, 242, 255, 0.05); color: var(--accent); border-left: 2px solid var(--accent); }
 
-        /* Persistence Toggle UI */
-        .opt-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .chk-wrap { display: flex; align-items: center; gap: 8px; font-size: 8px; color: #444; cursor: pointer; }
-        .chk-wrap input { display: none; }
-        .chk-custom { width: 10px; height: 10px; border: 1px solid var(--border); position: relative; }
-        input:checked + .chk-custom { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+        .viewport { background: #000; padding: 10px; overflow-y: auto; border-right: 1px solid var(--border); position: relative; }
+        .view-section { display: none; }
+        .view-section.active { display: block; }
 
-        .master-layout { display: none; height: 100vh; grid-template-columns: 220px 1fr 280px; grid-template-rows: 50px 1fr 30px; gap: 1px; background: var(--border); }
-        .authenticated .master-layout { display: grid; }
-        .authenticated #auth-gate { display: none; }
+        .hud-box { border: 1px solid var(--border); background: rgba(0,0,0,0.8); padding: 10px; position: relative; margin-bottom: 8px; }
+        .hud-label { position: absolute; top: -6px; left: 8px; background: #000; padding: 0 4px; font-size: 7px; color: var(--accent); font-weight: 900; letter-spacing: 1px; }
 
-        .panel { background: var(--bg); position: relative; overflow: hidden; }
-        header { grid-column: 1 / -1; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; }
-        .view-section { display: none; flex: 1; flex-direction: column; background: var(--bg); height: 100%; }
-        .view-section.active { display: flex; }
-        .terminal-wrap { flex: 1; padding: 15px; overflow-y: auto; background: #000; }
-        .log-entry { margin-bottom: 4px; border-left: 2px solid var(--accent); padding-left: 10px; font-size: 9px; }
+        /* LIVE MAP */
+        #map-container {
+            width: 100%; height: 180px;
+            background: radial-gradient(circle, #0a1118 0%, #000 100%);
+            border: 1px solid var(--border);
+            position: relative; overflow: hidden;
+            background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .map-ping { position: absolute; width: 4px; height: 4px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent); animation: ping-fade 2s infinite; }
+        @keyframes ping-fade { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(4); opacity: 0; } }
+
+        .t-input { width: 100%; background: #080a0c; border: 1px solid #1a1e23; color: var(--accent); font-size: 9px; padding: 7px; outline: none; margin-bottom: 8px; box-sizing: border-box; }
+        .t-btn { width: 100%; padding: 8px; border: none; font-weight: 900; font-size: 8px; cursor: pointer; text-transform: uppercase; transition: 0.2s; }
+        .t-btn:hover { filter: brightness(1.2); }
+
+        .theme-btn { width: 32%; font-size: 7px; padding: 5px; border: 1px solid var(--border); background: transparent; color: #fff; cursor: pointer; text-transform: uppercase; font-weight: 800; }
+
+        .log-line { font-size: 8px; font-family: 'JetBrains Mono'; margin-bottom: 2px; line-height: 1.2; }
+        .traffic-mini-card { border-left: 2px solid var(--accent); padding: 5px; background: rgba(255,255,255,0.01); margin-bottom: 4px; font-size: 8px; }
+
+        .hidden { display: none !important; }
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-thumb { background: var(--accent); }
     </style>
 </head>
-<body onload="X_OS.init()">
+<body onload="loadSavedTheme()">
 
-<div id="auth-gate">
-    <div class="auth-container">
-        <div style="font-size: 8px; color: var(--accent); letter-spacing: 3px; margin-bottom: 20px; text-align: center; font-weight: 900;">SECURE_UPLINK_v5.1</div>
-        
-        <input type="email" id="op-email" class="t-input" placeholder="OPERATOR_EMAIL">
-        <input type="password" id="op-pass" class="t-input" placeholder="ENCRYPTION_KEY">
-        
-        <div class="opt-row">
-            <label class="chk-wrap">
-                <input type="checkbox" id="remember-me" checked>
-                <div class="chk-custom"></div> REMEMBER_SESSION
-            </label>
-            <span onclick="X_OS.forgotPass()" style="font-size:7px; color:#333; cursor:pointer;">[RECOVER_KEY]</span>
-        </div>
-
-        <button onclick="X_OS.handleAuth()" class="t-btn">INITIALIZE_HANDSHAKE</button>
-        <div id="auth-status" style="margin-top:15px; text-align:center; font-size:8px; color:var(--danger);">SYSTEM_IDLE</div>
+<div id="login-screen">
+    <div class="hud-box" style="width: 260px;">
+        <span class="hud-label">FIREBASE_AUTHORIZATION</span>
+        <input type="email" id="fb-email" class="t-input" placeholder="OPERATOR_EMAIL">
+        <input type="password" id="fb-pass" class="t-input" placeholder="ACCESS_KEY">
+        <button onclick="authenticate()" class="t-btn" style="background: var(--accent); color: #000;">ESTABLISH_UPLINK</button>
+        <div id="auth-err" style="color: var(--danger); font-size: 7px; margin-top: 8px; text-align: center;"></div>
     </div>
 </div>
 
-<div class="master-layout">
-    <header class="panel">
-        <div style="font-weight: 900; letter-spacing: 4px;">XCLIPSE // <span id="op-id" style="color:var(--accent)">...</span></div>
-        <button onclick="X_OS.terminate()" style="background:transparent; border:1px solid var(--danger); color:var(--danger); font-size:8px; padding:4px 10px;">TERMINATE</button>
+<div class="c2-layout">
+    <header>
+        <div style="font-weight: 900; letter-spacing: 2px;">XCLIPSE // <span style="color:var(--accent)">SECURITY_v5.1</span></div>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div id="ip-display" style="font-size: 8px; color: #444;">NODE: 0.0.0.0</div>
+            <button onclick="signOut()" class="t-btn" style="width: auto; background: transparent; border: 1px solid var(--border); color: var(--accent); font-size: 7px; padding: 2px 8px;">TERMINATE</button>
+        </div>
     </header>
 
-    <aside class="sidebar panel" style="padding:15px; display:flex; flex-direction:column; gap:5px;">
-        <div class="nav-item active" onclick="X_OS.switchView('core-dash', this)">[01] CORE_DASH</div>
-        <div class="nav-item" onclick="X_OS.switchView('shield-logs', this)">[02] SHIELD_LOGS</div>
-        <div class="nav-item" onclick="X_OS.switchView('live-traffic', this)">[03] LIVE_TRAFFIC</div>
+    <aside class="sidebar-left">
+        <div class="nav-item active" onclick="switchView('core-dash', this)">[01] CORE_MAP</div>
+        <div class="nav-item" onclick="switchView('shield-logs', this)">[02] EVENT_LOGS</div>
+        <div class="nav-item" onclick="switchView('live-traffic', this)">[03] TRAFFIC_NODES</div>
+        <div class="nav-item" onclick="switchView('system-config', this)" style="margin-top:auto; border-top: 1px solid var(--border); color: #fff;">[04] SYSTEM_CONFIG</div>
     </aside>
 
-    <main class="viewport" style="background:var(--border); display:flex; flex-direction:column; gap:1px;">
+    <main class="viewport">
         <section id="core-dash" class="view-section active">
-            <div class="terminal-wrap" id="kernel-feed"></div>
+            <div id="map-container">
+                <span class="hud-label" style="top: 5px; left: 5px;">LIVE_GEOSPATIAL_GRID</span>
+            </div>
+            <div class="hud-box mt-2" style="height: 250px; overflow: hidden;">
+                <span class="hud-label">CORE_TERMINAL</span>
+                <div id="logs" style="height: 100%; overflow-y: auto;"></div>
+            </div>
         </section>
+
         <section id="shield-logs" class="view-section">
-            <div class="terminal-wrap" id="shield-data"></div>
+            <div class="hud-box" style="min-height: 480px;">
+                <span class="hud-label">RESTRICTION_AUDIT</span>
+                <div id="ban-list-content"></div>
+            </div>
         </section>
+
         <section id="live-traffic" class="view-section">
-            <div class="terminal-wrap" id="traffic-stream"></div>
+            <div class="hud-box" style="min-height: 480px;">
+                <span class="hud-label">ACTIVE_NETWORK_NODES</span>
+                <div id="traffic-stream"></div>
+            </div>
+        </section>
+
+        <section id="system-config" class="view-section">
+            <div class="hud-box">
+                <span class="hud-label">CLIENT_THEME_ENGINE</span>
+                <p style="font-size: 8px; color: #444; margin-bottom: 10px;">Local session overrides only. Persistent in browser cache.</p>
+                <div class="d-flex justify-content-between">
+                    <button onclick="setTheme('stratos')" class="theme-btn" style="border-color: #00f2ff; color: #00f2ff;">STRATOS</button>
+                    <button onclick="setTheme('amber')" class="theme-btn" style="border-color: #ffb400; color: #ffb400;">AMBER</button>
+                    <button onclick="setTheme('phantom')" class="theme-btn" style="border-color: #4ade80; color: #4ade80;">PHANTOM</button>
+                </div>
+            </div>
+
+            <div class="hud-box">
+                <span class="hud-label">SHIELD_PROTOCOL</span>
+                <div class="d-flex justify-content-between align-items:center;">
+                    <span style="font-size: 9px; color: #8b949e;">GLOBAL_OVERRIDE</span>
+                    <button id="lockdown-btn" onclick="toggleLockdown()" class="t-btn" style="width: 100px; background: var(--danger); color: #fff;">INIT_LOCK</button>
+                </div>
+            </div>
+
+            <div class="hud-box">
+                <span class="hud-label">MAINTENANCE</span>
+                <button onclick="db.ref('network/traffic').remove()" class="t-btn" style="background: transparent; border: 1px solid #333; color: #555; margin-bottom: 5px;">FLUSH_TRAFFIC_DATA</button>
+                <button onclick="document.getElementById('logs').innerHTML=''" class="t-btn" style="background: transparent; border: 1px solid #333; color: #555;">CLEAR_LOCAL_TERMINAL</button>
+            </div>
         </section>
     </main>
 
-    <aside class="panel" style="padding:15px; border-left:1px solid var(--border);">
-        <div style="font-size:7px; color:var(--accent); font-weight:900; letter-spacing:2px; margin-bottom:15px;">PACKET_INSPECTOR</div>
-        <div id="packet-logs" style="font-size:7px; opacity:0.4;"></div>
+    <aside class="sidebar-right">
+        <div class="hud-box">
+            <span class="hud-label">SIGNAL_BROADCAST</span>
+            <input type="text" id="marquee-msg" class="t-input" placeholder="MARQUEE_MSG...">
+            <button onclick="updateMarquee()" class="t-btn" style="background: var(--pink); color: #fff;">PUSH_SIGNAL</button>
+        </div>
+        <div class="hud-box">
+            <span class="hud-label">IP_RESTRICTION</span>
+            <input type="text" id="target-ip" class="t-input" placeholder="0.0.0.0">
+            <button onclick="banIP()" class="t-btn" style="background: #fff; color: #000;">EXECUTE_BAN</button>
+        </div>
     </aside>
+
+    <footer style="grid-column: 1/-1; background: #000; border-top: 1px solid var(--border); display: flex; align-items: center; padding: 0 10px; font-size: 7px; color: #222;">
+        SECURITY_v5.1 // FIREBASE_ENCRYPTED_UPLINK // MARCH_2026
+    </footer>
 </div>
 
 <script>
-const X_OS = (() => {
-    const config = {
+    // --- FIREBASE CONFIG ---
+    const firebaseConfig = {
         apiKey: "AIzaSyCdv6yESBrKhlEvU2URCXoVRVO-2OjAEv4",
         authDomain: "xclipse-security.firebaseapp.com",
         databaseURL: "https://xclipse-security-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -117,89 +204,161 @@ const X_OS = (() => {
         appId: "1:161353959200:web:d0b36f7817b31842cff945"
     };
 
-    let auth, db;
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
 
-    return {
-        init: () => {
-            firebase.initializeApp(config);
-            auth = firebase.auth();
-            db = firebase.database();
-            X_OS.observeAuth();
-        },
-
-        handleAuth: async () => {
-            const email = document.getElementById('op-email').value;
-            const pass = document.getElementById('op-pass').value;
-            const remember = document.getElementById('remember-me').checked;
-            const status = document.getElementById('auth-status');
-
-            try {
-                // Apply persistence logic
-                const persistence = remember ? 
-                    firebase.auth.Auth.Persistence.LOCAL : 
-                    firebase.auth.Auth.Persistence.SESSION;
-                
-                await auth.setPersistence(persistence);
-                await auth.signInWithEmailAndPassword(email, pass);
-            } catch (e) {
-                status.innerText = `ERR: ${e.message.toUpperCase()}`;
-            }
-        },
-
-        observeAuth: () => {
-            auth.onAuthStateChanged(user => {
-                if (user) {
-                    document.body.classList.add('authenticated');
-                    document.getElementById('op-id').innerText = user.email.toUpperCase();
-                    X_OS.launchModules();
-                } else {
-                    document.body.classList.remove('authenticated');
-                }
-            });
-        },
-
-        launchModules: () => {
-            X_OS.log('kernel-feed', '>> ENCRYPTED_SESSION_ESTABLISHED', 'var(--accent)');
-            
-            // Database Live Hook
-            db.ref('.info/connected').on('value', snap => {
-                X_OS.log('traffic-stream', `RTDB_STATE: ${snap.val() ? 'SYNCHRONIZED' : 'DISCONNECTED'}`);
-            });
-
-            // Simulated Traffic
-            setInterval(() => {
-                if(auth.currentUser) {
-                    const packet = Math.random().toString(36).substring(7).toUpperCase();
-                    X_OS.log('packet-logs', `HEX_${packet}.. [VALID]`, '#444');
-                }
-            }, 4000);
-        },
-
-        switchView: (id, el) => {
-            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            el.classList.add('active');
-        },
-
-        log: (id, msg, color = '#7a8a99') => {
-            const container = document.getElementById(id);
-            if(!container) return;
-            const d = document.createElement('div');
-            d.className = 'log-entry';
-            d.innerHTML = `<span style="opacity:0.2;">[${new Date().toLocaleTimeString()}]</span> <span style="color:${color}">${msg}</span>`;
-            container.prepend(d);
-        },
-
-        forgotPass: () => {
-            const email = document.getElementById('op-email').value;
-            if(!email) return alert("EMAIL_REQUIRED");
-            auth.sendPasswordResetEmail(email).then(() => alert("RECOVERY_SIGNAL_SENT"));
-        },
-
-        terminate: () => auth.signOut().then(() => location.reload())
+    // --- THEME ENGINE ---
+    const themes = {
+        stratos: { accent: '#00f2ff', border: 'rgba(0, 242, 255, 0.12)', bg: '#010206' },
+        amber: { accent: '#ffb400', border: 'rgba(255, 180, 0, 0.15)', bg: '#080500' },
+        phantom: { accent: '#4ade80', border: 'rgba(74, 222, 128, 0.12)', bg: '#010402' }
     };
-})();
+
+    function setTheme(name) {
+        const t = themes[name];
+        document.getElementById('theme-variables').innerHTML = `
+            :root {
+                --bg: ${t.bg};
+                --panel: #05070a;
+                --accent: ${t.accent};
+                --pink: #ec4899;
+                --danger: #ff003c;
+                --border: ${t.border};
+            }
+        `;
+        localStorage.setItem('c2_theme_preference', name);
+        addLog(`>> THEME_SYNC: ${name.toUpperCase()}`, 'var(--accent)');
+    }
+
+    function loadSavedTheme() {
+        const saved = localStorage.getItem('c2_theme_preference');
+        if (saved && themes[saved]) setTheme(saved);
+    }
+
+    // --- AUTH LOGIC (NEW) ---
+    async function authenticate() {
+        const email = document.getElementById('fb-email').value;
+        const pass = document.getElementById('fb-pass').value;
+        const errDisplay = document.getElementById('auth-err');
+
+        try {
+            errDisplay.innerText = "AUTHENTICATING...";
+            await auth.signInWithEmailAndPassword(email, pass);
+        } catch (error) {
+            errDisplay.innerText = `DENIED: ${error.message.toUpperCase()}`;
+        }
+    }
+
+    function signOut() {
+        auth.signOut().then(() => location.reload());
+    }
+
+    // --- AUTH OBSERVER (NEW) ---
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            document.body.classList.add('authenticated');
+            initC2();
+            addLog(`>> UPLINK_ESTABLISHED: ${user.email}`, 'var(--accent)');
+        } else {
+            document.body.classList.remove('authenticated');
+        }
+    });
+
+    function switchView(viewId, el) {
+        document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        el.classList.add('active');
+    }
+
+    // --- DATA HANDLING ---
+    function initC2() {
+        db.ref('network/security_shield').on('value', (s) => {
+            const active = s.val() === 'Active';
+            const btn = document.getElementById('lockdown-btn');
+            btn.innerText = active ? "SHIELD_ON" : "SHIELD_OFF";
+            btn.style.background = active ? "#fff" : "var(--danger)";
+            btn.style.color = active ? "var(--danger)" : "#fff";
+        });
+
+        db.ref('network/traffic').on('value', (s) => {
+            const stream = document.getElementById('traffic-stream');
+            const map = document.getElementById('map-container');
+            stream.innerHTML = '';
+            map.innerHTML = '<span class="hud-label" style="top:5px; left:5px;">LIVE_GEOSPATIAL_GRID</span>';
+            const data = s.val();
+            if(data) {
+                Object.keys(data).forEach(id => {
+                    stream.innerHTML += `<div class="traffic-mini-card">
+                        <div style="color:var(--accent)">${id.replaceAll('-', '.')}</div>
+                        <div style="opacity:0.4">PATH: ${data[id].current_page}</div>
+                        <button onclick="quickBan('${id}')" style="background:none; border:none; color:var(--danger); font-size:7px; padding:0; cursor:pointer;">[ISOLATE]</button>
+                    </div>`;
+                    const ping = document.createElement('div');
+                    ping.className = 'map-ping';
+                    ping.style.left = Math.random() * 90 + '%'; ping.style.top = Math.random() * 80 + '%';
+                    map.appendChild(ping);
+                });
+            }
+        });
+
+        db.ref('network/blacklist').on('value', (s) => {
+            const content = document.getElementById('ban-list-content');
+            content.innerHTML = '';
+            const data = s.val();
+            if(data) {
+                Object.keys(data).forEach(id => {
+                    content.innerHTML += `<div class="log-line"><span style="color:var(--danger)">[BANNED]</span> ${id.replaceAll('-', '.')} <span onclick="revokeBan('${id}')" style="cursor:pointer; opacity:0.3; margin-left:10px;">[REVOKE]</span></div>`;
+                });
+            }
+        });
+    }
+
+    // --- GLOBAL ACTIONS ---
+    function toggleLockdown() {
+        db.ref('network/security_shield').once('value', (s) => {
+            const next = s.val() === 'Active' ? 'Disabled' : 'Active';
+            db.ref('network/security_shield').set(next);
+            addLog(`>> PROTOCOL: SHIELD_${next.toUpperCase()}`, 'var(--pink)');
+        });
+    }
+
+    function banIP() {
+        const ip = document.getElementById('target-ip').value;
+        if(!ip.includes('.')) return;
+        db.ref('network/blacklist/' + ip.replaceAll('.', '-')).set({ ts: Date.now() });
+        addLog(`>> RESTRICTED: ${ip}`, 'var(--danger)');
+        document.getElementById('target-ip').value = '';
+    }
+
+    function quickBan(id) {
+        db.ref('network/blacklist/' + id).set({ ts: Date.now() });
+        addLog(`>> QUICK_ISOLATION: ${id.replaceAll('-','.')}`, 'var(--danger)');
+    }
+
+    function revokeBan(id) {
+        db.ref('network/blacklist/' + id).remove();
+        addLog(`>> RESTORED: ${id.replaceAll('-','.')}`, 'var(--accent)');
+    }
+
+    function updateMarquee() {
+        const msg = document.getElementById('marquee-msg').value;
+        if(!msg) return;
+        db.ref('network/global_marquee').set(msg);
+        addLog(`>> BROADCAST: ${msg}`, 'var(--pink)');
+        document.getElementById('marquee-msg').value = '';
+    }
+
+    function addLog(msg, color) {
+        const logs = document.getElementById('logs');
+        const d = document.createElement('div');
+        d.className = 'log-line';
+        d.innerHTML = `<span style="opacity:0.2;">[${new Date().toLocaleTimeString()}]</span> <span style="color:${color}">${msg}</span>`;
+        logs.prepend(d);
+    }
+
+    fetch('https://api.ipify.org?format=json').then(r => r.json()).then(d => document.getElementById('ip-display').innerText = `NODE: ${d.ip}`);
 </script>
 </body>
 </html>
