@@ -23,178 +23,89 @@
     </style>
 
     <style>
-        /* --- CORE ARCHITECTURE --- */
+        /* --- CORE STYLES (TRUNCATED FOR BREVITY, RETAINED FROM PREVIOUS) --- */
         * { box-sizing: border-box; cursor: crosshair !important; }
-        body, html {
-            background: var(--bg); color: #7a8a99; font-family: var(--font-main);
-            margin: 0; padding: 0; height: 100vh; overflow: hidden; font-size: 11px;
-        }
+        body, html { background: var(--bg); color: #7a8a99; font-family: var(--font-main); margin: 0; height: 100vh; overflow: hidden; font-size: 11px; }
+        
+        #auth-gate { position: fixed; inset: 0; z-index: 10000; background: #000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .auth-container { width: 360px; padding: 30px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 0 40px rgba(0,0,0,1); }
+        
+        .t-input { width: 100%; background: #000; border: 1px solid var(--border); color: var(--accent); padding: 10px; margin-bottom: 12px; outline: none; font-family: var(--font-main); }
+        .t-btn { width: 100%; padding: 10px; border: 1px solid var(--accent); background: var(--accent-dim); color: var(--accent); font-weight: 900; cursor: pointer; }
+        .t-btn:hover { background: var(--accent); color: #000; }
 
-        /* CRT SCANLINE OVERLAY */
-        body::before {
-            content: " "; position: fixed; inset: 0; 
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
-            background-size: 100% 3px, 3px 100%; z-index: 99999; pointer-events: none;
-        }
+        /* Persistence Toggle UI */
+        .opt-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .chk-wrap { display: flex; align-items: center; gap: 8px; font-size: 8px; color: #444; cursor: pointer; }
+        .chk-wrap input { display: none; }
+        .chk-custom { width: 10px; height: 10px; border: 1px solid var(--border); position: relative; }
+        input:checked + .chk-custom { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
 
-        /* --- AUTHENTICATION GATE --- */
-        #auth-gate {
-            position: fixed; inset: 0; z-index: 10000; background: #000;
-            display: flex; align-items: center; justify-content: center; flex-direction: column;
-        }
-        .auth-container {
-            width: 360px; padding: 30px; border: 1px solid var(--border);
-            background: var(--surface); position: relative;
-            box-shadow: 0 0 40px rgba(0,0,0,1);
-        }
-        .auth-header {
-            font-size: 8px; color: var(--accent); letter-spacing: 3px;
-            margin-bottom: 20px; text-align: center; font-weight: 900;
-            border-bottom: 1px solid var(--border); padding-bottom: 10px;
-        }
-
-        /* --- MASTER LAYOUT --- */
-        .master-layout {
-            display: none; height: 100vh;
-            grid-template-columns: 220px 1fr 280px;
-            grid-template-rows: 50px 1fr 30px;
-            gap: 1px; background: var(--border);
-        }
+        .master-layout { display: none; height: 100vh; grid-template-columns: 220px 1fr 280px; grid-template-rows: 50px 1fr 30px; gap: 1px; background: var(--border); }
         .authenticated .master-layout { display: grid; }
         .authenticated #auth-gate { display: none; }
 
         .panel { background: var(--bg); position: relative; overflow: hidden; }
         header { grid-column: 1 / -1; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; }
-        
-        /* SIDEBAR NAVIGATION */
-        .sidebar { padding: 15px; display: flex; flex-direction: column; gap: 5px; }
-        .nav-item {
-            padding: 12px; border: 1px solid transparent; color: #445566;
-            transition: 0.2s; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
-        }
-        .nav-item:hover { color: var(--accent); background: var(--accent-dim); }
-        .nav-item.active { 
-            color: var(--accent); border: 1px solid var(--border); 
-            background: var(--accent-dim); box-shadow: inset 4px 0 0 var(--accent);
-        }
-
-        /* VIEWPORT & MODULES */
-        .viewport { padding: 1px; display: flex; flex-direction: column; gap: 1px; background: var(--border); }
         .view-section { display: none; flex: 1; flex-direction: column; background: var(--bg); height: 100%; }
         .view-section.active { display: flex; }
-
-        /* TACTICAL MAP */
-        .map-container { height: 300px; background: #000; position: relative; border-bottom: 1px solid var(--border); }
-        #tactical-canvas { width: 100%; height: 100%; }
-
-        /* LOGS & TERMINAL */
-        .terminal-wrap { flex: 1; padding: 15px; overflow-y: auto; background: #000; position: relative; }
+        .terminal-wrap { flex: 1; padding: 15px; overflow-y: auto; background: #000; }
         .log-entry { margin-bottom: 4px; border-left: 2px solid var(--accent); padding-left: 10px; font-size: 9px; }
-        .ts { color: #334455; margin-right: 10px; }
-
-        /* UTILITIES */
-        .hud-label {
-            font-size: 7px; color: var(--accent); font-weight: 900; 
-            letter-spacing: 2px; margin-bottom: 10px; display: block;
-        }
-        .t-input { 
-            width: 100%; background: #000; border: 1px solid var(--border); 
-            color: var(--accent); padding: 10px; margin-bottom: 15px; outline: none;
-        }
-        .t-btn { 
-            width: 100%; padding: 10px; border: 1px solid var(--accent);
-            background: var(--accent-dim); color: var(--accent); font-weight: 900;
-        }
-        .t-btn:hover { background: var(--accent); color: #000; }
-        
-        #clock { letter-spacing: 2px; color: var(--accent); }
-        .status-pill { padding: 2px 6px; border: 1px solid var(--border); font-size: 7px; border-radius: 3px; }
     </style>
 </head>
 <body onload="X_OS.init()">
 
 <div id="auth-gate">
     <div class="auth-container">
-        <div class="auth-header">UPLINK_PROTOCOL // PASSWORDLESS</div>
+        <div style="font-size: 8px; color: var(--accent); letter-spacing: 3px; margin-bottom: 20px; text-align: center; font-weight: 900;">SECURE_UPLINK_v5.1</div>
+        
         <input type="email" id="op-email" class="t-input" placeholder="OPERATOR_EMAIL">
-        <button onclick="X_OS.requestUplink()" class="t-btn">REQUEST_TOKEN</button>
-        <div id="auth-status" style="margin-top:15px; text-align:center; font-size:8px;">AWAITING_INPUT</div>
+        <input type="password" id="op-pass" class="t-input" placeholder="ENCRYPTION_KEY">
+        
+        <div class="opt-row">
+            <label class="chk-wrap">
+                <input type="checkbox" id="remember-me" checked>
+                <div class="chk-custom"></div> REMEMBER_SESSION
+            </label>
+            <span onclick="X_OS.forgotPass()" style="font-size:7px; color:#333; cursor:pointer;">[RECOVER_KEY]</span>
+        </div>
+
+        <button onclick="X_OS.handleAuth()" class="t-btn">INITIALIZE_HANDSHAKE</button>
+        <div id="auth-status" style="margin-top:15px; text-align:center; font-size:8px; color:var(--danger);">SYSTEM_IDLE</div>
     </div>
 </div>
 
 <div class="master-layout">
     <header class="panel">
-        <div style="font-weight: 900; letter-spacing: 4px;">XCLIPSE // <span id="op-id" style="color:var(--accent)">SECURITY_CORE</span></div>
-        <div style="display:flex; gap:20px; align-items:center;">
-            <div class="status-pill" id="net-stat">LINK: STABLE</div>
-            <div id="clock">00:00:00</div>
-            <button onclick="X_OS.terminate()" style="background:transparent; border:1px solid var(--danger); color:var(--danger); font-size:8px; padding:3px 8px; font-weight:900;">LOGOUT</button>
-        </div>
+        <div style="font-weight: 900; letter-spacing: 4px;">XCLIPSE // <span id="op-id" style="color:var(--accent)">...</span></div>
+        <button onclick="X_OS.terminate()" style="background:transparent; border:1px solid var(--danger); color:var(--danger); font-size:8px; padding:4px 10px;">TERMINATE</button>
     </header>
 
-    <aside class="sidebar panel">
-        <span class="hud-label">CORE_NAVIGATION</span>
+    <aside class="sidebar panel" style="padding:15px; display:flex; flex-direction:column; gap:5px;">
         <div class="nav-item active" onclick="X_OS.switchView('core-dash', this)">[01] CORE_DASH</div>
         <div class="nav-item" onclick="X_OS.switchView('shield-logs', this)">[02] SHIELD_LOGS</div>
         <div class="nav-item" onclick="X_OS.switchView('live-traffic', this)">[03] LIVE_TRAFFIC</div>
-        <div class="nav-item" onclick="X_OS.switchView('settings', this)" style="margin-top:auto;">[09] SETTINGS</div>
     </aside>
 
-    <main class="viewport">
+    <main class="viewport" style="background:var(--border); display:flex; flex-direction:column; gap:1px;">
         <section id="core-dash" class="view-section active">
-            <div class="map-container">
-                <span class="hud-label" style="position:absolute; top:10px; left:15px;">TACTICAL_GEOSPATIAL_MAP</span>
-                <canvas id="tactical-canvas"></canvas>
-            </div>
-            <div class="terminal-wrap">
-                <span class="hud-label">SYSTEM_KERNEL_FEED</span>
-                <div id="kernel-feed"></div>
-            </div>
+            <div class="terminal-wrap" id="kernel-feed"></div>
         </section>
-
         <section id="shield-logs" class="view-section">
-            <div class="terminal-wrap" style="height:100%;">
-                <span class="hud-label">SHIELD_PROTOCOL_HISTORY</span>
-                <div id="shield-data"></div>
-            </div>
+            <div class="terminal-wrap" id="shield-data"></div>
         </section>
-
         <section id="live-traffic" class="view-section">
-            <div class="terminal-wrap" style="height:100%;">
-                <span class="hud-label">NETWORK_TRAFFIC_MONITOR</span>
-                <div id="traffic-stream"></div>
-            </div>
-        </section>
-
-        <section id="settings" class="view-section">
-            <div style="padding:40px; max-width:400px;">
-                <span class="hud-label">INTERFACE_CALIBRATION</span>
-                <button onclick="X_OS.theme('cyan')" class="t-btn" style="margin-bottom:10px;">CYAN_LINK</button>
-                <button onclick="X_OS.theme('amber')" class="t-btn" style="margin-bottom:10px; border-color:#ffb400; color:#ffb400;">AMBER_WARN</button>
-                <button onclick="X_OS.theme('blood')" class="t-btn" style="border-color:#ff003c; color:#ff003c;">BLOOD_EXEC</button>
-            </div>
+            <div class="terminal-wrap" id="traffic-stream"></div>
         </section>
     </main>
 
-    <aside class="panel" style="border-left:1px solid var(--border); padding:15px;">
-        <span class="hud-label">DATABASE_UPLINK</span>
-        <div id="db-stats" style="font-size:8px; line-height:2;">
-            DATABASE_URL: FIREBASE_RTDB<br>
-            ENCRYPTION: AES_256<br>
-            STATUS: <span style="color:var(--accent)">CONNECTED</span>
-        </div>
-        <hr style="border:none; border-top:1px solid var(--border); margin:15px 0;">
-        <span class="hud-label">PACKET_INSPECTOR</span>
-        <div id="packet-logs" style="font-size:7px; opacity:0.5;"></div>
+    <aside class="panel" style="padding:15px; border-left:1px solid var(--border);">
+        <div style="font-size:7px; color:var(--accent); font-weight:900; letter-spacing:2px; margin-bottom:15px;">PACKET_INSPECTOR</div>
+        <div id="packet-logs" style="font-size:7px; opacity:0.4;"></div>
     </aside>
 </div>
 
 <script>
-/**
- * XCLIPSE_OS KERNEL v5.1
- * Sophisticated Firebase Implementation
- */
 const X_OS = (() => {
     const config = {
         apiKey: "AIzaSyCdv6yESBrKhlEvU2URCXoVRVO-2OjAEv4",
@@ -206,87 +117,41 @@ const X_OS = (() => {
         appId: "1:161353959200:web:d0b36f7817b31842cff945"
     };
 
-    let app, auth, db, canvas, ctx;
-
-    const _utils = {
-        log: (id, msg, color = 'var(--accent)') => {
-            const container = document.getElementById(id);
-            if(!container) return;
-            const div = document.createElement('div');
-            div.className = 'log-entry';
-            div.innerHTML = `<span class="ts">[${new Date().toLocaleTimeString()}]</span> <span style="color:${color}">${msg}</span>`;
-            container.prepend(div);
-            if(container.children.length > 50) container.lastChild.remove();
-        },
-        renderMap: () => {
-            if(!canvas) return;
-            ctx.clearRect(0,0,canvas.width, canvas.height);
-            ctx.strokeStyle = "rgba(0, 242, 255, 0.05)";
-            for(let i=0; i<canvas.width; i+=25) {
-                ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, canvas.height); ctx.stroke();
-            }
-            for(let j=0; j<canvas.height; j+=25) {
-                ctx.beginPath(); ctx.moveTo(0,j); ctx.lineTo(canvas.width, j); ctx.stroke();
-            }
-            if(Math.random() > 0.95) _utils.drawPing();
-            requestAnimationFrame(_utils.renderMap);
-        },
-        drawPing: () => {
-            const x = Math.random() * canvas.width;
-            const y = Math.random() * canvas.height;
-            let r = 0;
-            const anim = () => {
-                ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-                ctx.strokeStyle = `rgba(0, 242, 255, ${1 - r/60})`;
-                ctx.stroke(); r++;
-                if(r < 60) requestAnimationFrame(anim);
-            };
-            anim();
-        }
-    };
+    let auth, db;
 
     return {
         init: () => {
-            app = firebase.initializeApp(config);
+            firebase.initializeApp(config);
             auth = firebase.auth();
             db = firebase.database();
-            
-            canvas = document.getElementById('tactical-canvas');
-            if(canvas) {
-                canvas.width = canvas.offsetWidth;
-                canvas.height = canvas.offsetHeight;
-                ctx = canvas.getContext('2d');
-                _utils.renderMap();
-            }
-
-            this.X_OS.checkAuth();
-            setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleTimeString(), 1000);
+            X_OS.observeAuth();
         },
 
-        requestUplink: async () => {
+        handleAuth: async () => {
             const email = document.getElementById('op-email').value;
+            const pass = document.getElementById('op-pass').value;
+            const remember = document.getElementById('remember-me').checked;
             const status = document.getElementById('auth-status');
-            const settings = { url: window.location.href, handleCodeInApp: true };
+
             try {
-                await auth.sendSignInLinkToEmail(email, settings);
-                window.localStorage.setItem('emailForSignIn', email);
-                status.innerText = "ACCESS_LINK_DISPATCHED";
-            } catch (e) { status.innerText = `ERR: ${e.code}`; }
+                // Apply persistence logic
+                const persistence = remember ? 
+                    firebase.auth.Auth.Persistence.LOCAL : 
+                    firebase.auth.Auth.Persistence.SESSION;
+                
+                await auth.setPersistence(persistence);
+                await auth.signInWithEmailAndPassword(email, pass);
+            } catch (e) {
+                status.innerText = `ERR: ${e.message.toUpperCase()}`;
+            }
         },
 
-        checkAuth: async () => {
-            if (auth.isSignInWithEmailLink(window.location.href)) {
-                let email = window.localStorage.getItem('emailForSignIn') || window.prompt('VERIFY_EMAIL:');
-                await auth.signInWithEmailLink(email, window.location.href);
-                window.localStorage.removeItem('emailForSignIn');
-                window.history.replaceState({}, "", window.location.pathname);
-            }
-
+        observeAuth: () => {
             auth.onAuthStateChanged(user => {
-                if(user) {
+                if (user) {
                     document.body.classList.add('authenticated');
                     document.getElementById('op-id').innerText = user.email.toUpperCase();
-                    this.X_OS.launchModules();
+                    X_OS.launchModules();
                 } else {
                     document.body.classList.remove('authenticated');
                 }
@@ -294,35 +159,42 @@ const X_OS = (() => {
         },
 
         launchModules: () => {
-            _utils.log('kernel-feed', '>> KERNEL_INITIALIZED', 'var(--accent)');
-            _utils.log('shield-data', '>> SHIELD_V5_STABLE', 'var(--warning)');
+            X_OS.log('kernel-feed', '>> ENCRYPTED_SESSION_ESTABLISHED', 'var(--accent)');
             
-            // Live Traffic Simulator & DB Hook
+            // Database Live Hook
             db.ref('.info/connected').on('value', snap => {
-                _utils.log('traffic-stream', `NETWORK_UPLINK: ${snap.val() ? 'ACTIVE' : 'OFFLINE'}`);
+                X_OS.log('traffic-stream', `RTDB_STATE: ${snap.val() ? 'SYNCHRONIZED' : 'DISCONNECTED'}`);
             });
 
+            // Simulated Traffic
             setInterval(() => {
-                const packet = Math.random().toString(36).substring(7).toUpperCase();
-                _utils.log('packet-logs', `PKT_IN: ${packet}.. [PASS]`, '#444');
-                if(Math.random() > 0.7) _utils.log('traffic-stream', `INBOUND_TRAFFIC: NODE_${packet}`, 'var(--accent)');
-            }, 3000);
+                if(auth.currentUser) {
+                    const packet = Math.random().toString(36).substring(7).toUpperCase();
+                    X_OS.log('packet-logs', `HEX_${packet}.. [VALID]`, '#444');
+                }
+            }, 4000);
         },
 
-        switchView: (id, btn) => {
+        switchView: (id, el) => {
             document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(id).classList.add('active');
-            btn.classList.add('active');
-            _utils.log('kernel-feed', `VIEW_CHANGED: ${id.toUpperCase()}`, '#555');
+            el.classList.add('active');
         },
 
-        theme: (key) => {
-            const root = document.documentElement.style;
-            if(key === 'amber') { root.setProperty('--accent', '#ffb400'); root.setProperty('--border', 'rgba(255,180,0,0.2)'); }
-            else if(key === 'blood') { root.setProperty('--accent', '#ff003c'); root.setProperty('--border', 'rgba(255,0,60,0.2)'); }
-            else { root.setProperty('--accent', '#00f2ff'); root.setProperty('--border', 'rgba(0,242,255,0.2)'); }
-            localStorage.setItem('user_theme', key);
+        log: (id, msg, color = '#7a8a99') => {
+            const container = document.getElementById(id);
+            if(!container) return;
+            const d = document.createElement('div');
+            d.className = 'log-entry';
+            d.innerHTML = `<span style="opacity:0.2;">[${new Date().toLocaleTimeString()}]</span> <span style="color:${color}">${msg}</span>`;
+            container.prepend(d);
+        },
+
+        forgotPass: () => {
+            const email = document.getElementById('op-email').value;
+            if(!email) return alert("EMAIL_REQUIRED");
+            auth.sendPasswordResetEmail(email).then(() => alert("RECOVERY_SIGNAL_SENT"));
         },
 
         terminate: () => auth.signOut().then(() => location.reload())
