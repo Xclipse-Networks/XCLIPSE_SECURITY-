@@ -7,12 +7,14 @@
     
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <style id="theme-logic">
         :root {
             --bg: #010206;
             --accent: #00f2ff;
             --border: rgba(0, 242, 255, 0.15);
+            --glow: rgba(0, 242, 255, 0.2);
         }
     </style>
 
@@ -42,52 +44,86 @@
             cursor: pointer; text-transform: uppercase; background: var(--accent); color: #000;
         }
 
-        .c2-layout { display: none; height: 100vh; grid-template-columns: 200px 1fr; grid-template-rows: 40px 1fr; }
+        /* FULL INTERFACE LAYOUT */
+        .c2-layout { 
+            display: none; height: 100vh; 
+            grid-template-columns: 200px 1fr 280px; 
+            grid-template-rows: 45px 1fr 25px; 
+        }
         .authenticated .c2-layout { display: grid; }
         .authenticated #auth-gate { display: none; }
 
-        header { grid-column: 1 / -1; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; justify-content: space-between; background: #000; }
-        .viewport { padding: 20px; background: #000; border-left: 1px solid var(--border); }
-        #status-msg { color: var(--accent); font-size: 8px; margin-top: 15px; text-align: center; font-weight: 800; min-height: 10px; }
+        header { grid-column: 1 / -1; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; background: #000; z-index: 100; }
+        
+        .sidebar { background: #000; border-right: 1px solid var(--border); padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .viewport { padding: 15px; background: #000; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .data-panel { background: #000; border-left: 1px solid var(--border); padding: 15px; overflow-y: auto; }
+
+        #map-display { width: 100%; height: 220px; border: 1px solid var(--border); position: relative; background: radial-gradient(circle, var(--glow) 0%, #000 100%); overflow: hidden; }
+        .terminal-output { flex-grow: 1; border: 1px solid var(--border); background: rgba(0,0,0,0.5); padding: 10px; font-size: 8px; overflow-y: auto; }
+
+        .status-tag { font-size: 7px; color: var(--accent); border: 1px solid var(--accent); padding: 2px 5px; border-radius: 2px; text-transform: uppercase; }
+        .log-entry { margin-bottom: 4px; border-left: 2px solid var(--accent); padding-left: 8px; }
+        
+        .hidden { display: none !important; }
     </style>
 </head>
 <body onload="checkSignInLink()">
 
 <div id="auth-gate">
     <div class="hud-box">
-        <span class="hud-label">PASSWORDLESS_UPLINK_PROTOCOL</span>
-        
-        <div id="request-sector">
+        <span class="hud-label">UPLINK_STATUS: AWAITING_ID</span>
+        <div id="auth-ui">
             <input type="email" id="op-email" class="t-input" placeholder="OPERATOR_EMAIL_ADDRESS">
-            <button onclick="sendMagicLink()" class="t-btn">REQUEST_ACCESS_TOKEN</button>
+            <button onclick="sendMagicLink()" class="t-btn">INITIALIZE_HANDSHAKE</button>
         </div>
-
-        <div id="status-msg">READY_FOR_INPUT</div>
+        <div id="auth-status" style="margin-top:15px; font-size:8px; text-align:center; color:var(--accent);">STANDBY</div>
     </div>
 </div>
 
 <div class="c2-layout">
     <header>
-        <div style="font-weight: 900; letter-spacing: 2px;">XCLIPSE // <span id="op-display" style="color:var(--accent)">VERIFIED</span></div>
-        <button onclick="auth.signOut(); location.reload();" style="background:transparent; border:1px solid var(--border); color:var(--accent); font-size:8px; padding:4px 10px; cursor:pointer;">TERMINATE_SESSION</button>
+        <div style="font-weight: 900; letter-spacing: 3px;">XCLIPSE // <span id="op-callsign" style="color:var(--accent)">...</span></div>
+        <div style="display:flex; gap:15px; align-items:center;">
+            <div class="status-tag">System_Encryption: Active</div>
+            <button onclick="auth.signOut(); location.reload();" style="background:transparent; border:1px solid var(--border); color:var(--accent); font-size:8px; padding:5px 10px; cursor:pointer; font-weight:800;">LOGOUT</button>
+        </div>
     </header>
     
-    <aside style="background: #000; padding: 15px;">
-        <div style="color:var(--accent); font-size:9px;">[ACTIVE_SESSION]</div>
+    <aside class="sidebar">
+        <span class="hud-label" style="position:static; margin-bottom:10px;">NAVIGATION_NODES</span>
+        <button class="t-btn" style="background:transparent; color:var(--accent); border:1px solid var(--border); text-align:left;">[01] TACTICAL_GRID</button>
+        <button class="t-btn" style="background:transparent; color:#333; border:1px solid #111; text-align:left;">[02] COMMS_RELAY</button>
+        <button class="t-btn" style="background:transparent; color:#333; border:1px solid #111; text-align:left;">[03] ASSET_VIEWER</button>
     </aside>
 
     <main class="viewport">
-        <div class="hud-box" style="width: 100%; height: 80%;">
-            <span class="hud-label">ENCRYPTED_DATA_STREAM</span>
-            <div id="logs" style="font-size:9px; line-height:1.6;"></div>
+        <div id="map-display">
+            <span class="hud-label" style="top:5px; left:5px;">GEOSPATIAL_ACTIVE_GRID</span>
+            <div id="map-canvas" style="width:100%; height:100%; opacity:0.4;"></div>
+        </div>
+
+        <div class="terminal-output">
+            <span class="hud-label" style="top:-6px; left:8px;">SYSTEM_TERMINAL_STREAM</span>
+            <div id="terminal-logs"></div>
         </div>
     </main>
+
+    <aside class="data-panel">
+        <span class="hud-label" style="position:static; margin-bottom:10px;">LIVE_DATABASE_NODES</span>
+        <div id="db-stream" style="font-size:7px; color:#555;">CONNECTING_TO_DATABASE...</div>
+    </aside>
+
+    <footer style="grid-column: 1/-1; background:#000; border-top:1px solid var(--border); display:flex; align-items:center; padding:0 20px; font-size:7px; color:#222;">
+        CORE_v5.1 // STICKY_SESSION_ENABLED // AUTH_TYPE: PASSWORDLESS_LINK
+    </footer>
 </div>
 
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyCdv6yESBrKhlEvU2URCXoVRVO-2OjAEv4",
         authDomain: "xclipse-security.firebaseapp.com",
+        databaseURL: "https://xclipse-security-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "xclipse-security",
         storageBucket: "xclipse-security.firebasestorage.app",
         messagingSenderId: "161353959200",
@@ -96,64 +132,77 @@
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const db = firebase.database();
 
-    // 1. SEND MAGIC LINK
+    // --- 1. THE HANDSHAKE (LOGIN) ---
     async function sendMagicLink() {
         const email = document.getElementById('op-email').value;
-        const msg = document.getElementById('status-msg');
-
-        const actionCodeSettings = {
-            url: window.location.href, // Redirects back to this page
-            handleCodeInApp: true
-        };
+        const status = document.getElementById('auth-status');
+        const settings = { url: window.location.href, handleCodeInApp: true };
 
         try {
-            await auth.sendSignInLinkToEmail(email, actionCodeSettings);
+            await auth.sendSignInLinkToEmail(email, settings);
             window.localStorage.setItem('emailForSignIn', email);
-            msg.innerText = "ACCESS_LINK_DISPATCHED. CHECK_INBOX.";
-        } catch (error) {
-            msg.style.color = "#ff003c";
-            msg.innerText = `UPLINK_ERR: ${error.message.toUpperCase()}`;
+            status.innerText = "ACCESS_LINK_SENT. VERIFY_VIA_EMAIL_INBOX.";
+        } catch (e) {
+            status.innerText = `ERR: ${e.code.toUpperCase()}`;
         }
     }
 
-    // 2. CHECK FOR INCOMING LINK (Runs on Load)
     async function checkSignInLink() {
         if (auth.isSignInWithEmailLink(window.location.href)) {
-            let email = window.localStorage.getItem('emailForSignIn');
-            
-            // If user opened link on a different device/browser, ask for email again
-            if (!email) {
-                email = window.prompt('PLEASE_CONFIRM_OPERATOR_EMAIL_FOR_HANDSHAKE:');
-            }
-
+            let email = window.localStorage.getItem('emailForSignIn') || window.prompt('CONFIRM_EMAIL:');
             try {
                 await auth.signInWithEmailLink(email, window.location.href);
                 window.localStorage.removeItem('emailForSignIn');
-                // URL cleanup
                 window.history.replaceState({}, document.title, window.location.pathname);
-            } catch (error) {
-                alert(`HANDSHAKE_FAILED: ${error.message}`);
-            }
+            } catch (e) { alert("HANDSHAKE_FAILED"); }
         }
     }
 
-    // 3. AUTH OBSERVER
+    // --- 2. THE VISIBILITY (EVERYTHING) ---
     auth.onAuthStateChanged(user => {
         if (user) {
             document.body.classList.add('authenticated');
-            document.getElementById('op-display').innerText = user.email.toUpperCase();
-            addLog(`>> UPLINK_SUCCESS: ${user.email}`, 'var(--accent)');
+            document.getElementById('op-callsign').innerText = user.email.split('@')[0].toUpperCase();
+            
+            // ACTIVATE ALL MODULES
+            initEverything();
+            addLog(`>> OPERATOR_IDENTIFIED: ${user.email}`, 'var(--accent)');
+            addLog(`>> RETRIEVING_DATABASE_PERMISSIONS...`, '#444');
         } else {
             document.body.classList.remove('authenticated');
         }
     });
 
+    function initEverything() {
+        // Retrieve Live Data from Firebase Database
+        db.ref('.info/connected').on('value', snap => {
+            const stream = document.getElementById('db-stream');
+            if (snap.val() === true) {
+                stream.innerHTML = `<span style="color:var(--accent)">UPLINK_STABLE</span><br>LATENCY: ${Math.floor(Math.random()*50)}ms<br>NODES: 14_ACTIVE`;
+            }
+        });
+
+        // Start Tactical Map "Ping" effect
+        setInterval(() => {
+            if(document.body.classList.contains('authenticated')) {
+                addLog(`[PING] NODE_${Math.floor(Math.random()*999)} CHECKIN_SUCCESS`, '#222');
+            }
+        }, 15000);
+    }
+
     function addLog(msg, color) {
-        const logs = document.getElementById('logs');
+        const logs = document.getElementById('terminal-logs');
         const d = document.createElement('div');
-        d.innerHTML = `<span style="opacity:0.3;">[${new Date().toLocaleTimeString()}]</span> <span style="color:${color}">${msg}</span>`;
+        d.className = 'log-entry';
+        d.innerHTML = `<span style="opacity:0.2;">[${new Date().toLocaleTimeString()}]</span> <span style="color:${color}">${msg}</span>`;
         logs.prepend(d);
+    }
+
+    function applyStoredTheme() {
+        const saved = localStorage.getItem('user_theme') || 'cyan';
+        // (Theme logic here as needed)
     }
 </script>
 </body>
